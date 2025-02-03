@@ -56,7 +56,7 @@ AnnotateStartValue=1
 AnnotationIndexControlEnabled=0
 AnnotateSuffix=
 AnnotateScope=All
-AnnotateOrder=-1
+AnnotateOrder=0
 DoLibraryUpdate=1
 DoDatabaseUpdate=1
 ClassGenCCAutoEnabled=1
@@ -100,17 +100,34 @@ DItemRevisionGUID=
 GenerateClassCluster=0
 DocumentUniqueId=FXCTJQRW
 
-[Parameter1]
-Name=Project_revision
-Value=v1.0
+[Document4]
+DocumentPath=iot_hdmi_mux.PcbDoc
+AnnotationEnabled=1
+AnnotateStartValue=1
+AnnotationIndexControlEnabled=0
+AnnotateSuffix=
+AnnotateScope=All
+AnnotateOrder=-1
+DoLibraryUpdate=1
+DoDatabaseUpdate=1
+ClassGenCCAutoEnabled=1
+ClassGenCCAutoRoomEnabled=0
+ClassGenNCAutoScope=None
+DItemRevisionGUID=
+GenerateClassCluster=0
+DocumentUniqueId=LCHPWUYS
 
-[Parameter2]
+[Parameter1]
 Name=PCB_Revision
 Value=iot_hdmi_mux_v1.0
 
-[Parameter3]
+[Parameter2]
 Name=Project
 Value=IOT
+
+[Parameter3]
+Name=Project_revision
+Value=v1.0
 
 [Configuration1]
 Name=Sources
