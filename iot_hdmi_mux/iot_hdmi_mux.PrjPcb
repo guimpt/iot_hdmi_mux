@@ -117,6 +117,10 @@ DItemRevisionGUID=
 GenerateClassCluster=0
 DocumentUniqueId=LCHPWUYS
 
+[GeneratedDocument1]
+DocumentPath=Project Outputs for iot_hdmi_mux\Design Rule Check - iot_hdmi_mux.html
+DItemRevisionGUID=
+
 [Parameter1]
 Name=PCB_Revision
 Value=iot_hdmi_mux_v1.0
