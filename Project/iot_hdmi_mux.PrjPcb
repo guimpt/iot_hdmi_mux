@@ -37,6 +37,8 @@ IsVirtualBomDocumentRemoved=0
 OutputPath=
 LogFolderPath=
 ManagedProjectGUID=
+VaultGUID=D95C5E11-3543-4C38-8647-2CCFC09FDBCD
+ReleaseVaultName=ABLE
 IncludeDesignInRelease=0
 CrossRefSheetStyle=1
 CrossRefLocationStyle=1
@@ -48,6 +50,19 @@ CrossRefFollowFromMainSettings=1
 [Preferences]
 PrefsVaultGUID=
 PrefsRevisionGUID=
+
+[ProjectReleaseNamings]
+ProjectMarco=iot_hdmi_mux
+ProjectItemFolderPath=Projects\iot_hdmi_mux
+ProjectItemHRID=
+Sources=SRC-`ProjectName`
+Fabrication=FAB-`ProjectName`
+Assembly=ASM-`ProjectName`-`VariantName`
+
+[Release]
+ReleaseTarget=2
+ReleaseFolderPath=[OutputPath]
+ReleaseZipPath=C:\Users\Guim\Documents\PROJECTES\Personal\iot_hdmi_mux\Project\Project Outputs for iot_hdmi_mux\release.zip
 
 [Document1]
 DocumentPath=iot_hdmi_mux.SchDoc
@@ -176,6 +191,28 @@ Variant=[No Variations]
 OutputJobsCount=0
 ContentTypeGUID=CB6F2064-E317-11DF-B822-12313F0024A2
 ConfigurationType=Source
+
+[Configuration2]
+Name=Fabrication
+ParameterCount=0
+ConstraintFileCount=0
+ReleaseItemId=
+Variant=[No Variations]
+OutputJobsCount=0
+ContentTypeGUID=0C520D2A-E60C-11DF-B822-12313F0024A2
+ConfigurationType=Fabrication
+
+[Configuration3]
+Name=Assembly
+ParameterCount=0
+ConstraintFileCount=0
+ReleaseItemId=
+Variant=[No Variations]
+OutputJobsCount=1
+DocumentReferenceClass1=DocumentReference
+OutputJobFileName1=Manufacturing_JLC.OutJob
+ContentTypeGUID=0D12F8DC-E60C-11DF-B822-12313F0024A2
+ConfigurationType=Assembly
 
 [OutputGroup1]
 Name=Netlist Outputs
