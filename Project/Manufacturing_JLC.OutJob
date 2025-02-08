@@ -1,0 +1,247 @@
+[OutputJobFile]
+Version=1.0
+Caption=
+Description=
+VaultGUID=
+ItemGUID=
+ItemHRID=
+RevisionGUID=
+RevisionId=
+VaultHRID=
+AutoItemHRID=
+NextRevId=
+FolderGUID=
+LifeCycleDefinitionGUID=
+RevisionNamingSchemeGUID=
+
+[OutputGroup1]
+Name=Job Group
+Description=
+TargetOutputMedium=Folder Structure
+VariantName=[No Variations]
+VariantScope=1
+CurrentConfigurationName=
+TargetPrinter=Adobe PDF
+PrinterOptions=Record=PrinterOptions|Copies=1|Duplex=1|TrueTypeOptions=3|Collate=1|PrintJobKind=1|PrintWhat=1
+OutputMedium1=Print Job
+OutputMedium1_Type=Printer
+OutputMedium1_Printer=HPE8A1C6 (HP OfficeJet Pro 9020 series)
+OutputMedium1_PrinterOptions=Record=PrinterOptions|Copies=1|Duplex=1|TrueTypeOptions=3|Collate=1|PrintJobKind=1|PrintWhat=1
+OutputMedium2=PDF
+OutputMedium2_Type=Publish
+OutputMedium3=Schematic
+OutputMedium3_Type=Publish
+OutputMedium4=Folder Structure
+OutputMedium4_Type=GeneratedFiles
+OutputType1=PCB 3D Print
+OutputName1=PCB 3D Print TOP
+OutputCategory1=Documentation
+OutputDocumentPath1=
+OutputVariantName1=
+OutputEnabled1=0
+OutputEnabled1_OutputMedium1=0
+OutputEnabled1_OutputMedium2=1
+OutputEnabled1_OutputMedium3=0
+OutputEnabled1_OutputMedium4=0
+OutputDefault1=0
+PageOptions1=Record=PageOptions|CenterHorizontal=True|CenterVertical=True|PrintScale=3.90|XCorrection=1.00|YCorrection=1.00|PrintKind=1|BorderSize=5000000|LeftOffset=0|BottomOffset=0|Orientation=2|PaperLength=1000|PaperWidth=1000|Scale=100|PaperSource=7|PrintQuality=-3|MediaType=1|DitherType=10|PrintScaleMode=1|PaperKind=Letter|PaperIndex=1
+Configuration1_Name1=OutputConfigurationParameter1
+Configuration1_Item1=Record=Pcb3DPrintView|ResX=600|ResY=600|ViewX=29264088|ViewY=46929132|LookAtX=42297088|LookAtY=33464566|LookAtZ=0|UpX=0|UpY=1|UpZ=0|FOV=0|QuatX=0|QuatY=0|QuatZ=0|QuatW=1|Zoom=1.84533564354014E-5|UnitsPercent=True|UnitsDPI=True|LockResAspect=True|ViewConfigType=.config_3d|CustomCamera=False|ViewFromTop=True|ScreenWidth=0|ScreenHeight=0|ImageOutputType=1|ViewConfig= |DocumentPath=G:\.shortcut-targets-by-id\1I7He_iJmfkJ0eVKHMBRRRDJklaMq9t08\ABLE Drive\R&D\ABLE Exoskeleton\Electronics\ABS_4B_OENC\ABS_4B_OENC.PcbDoc
+OutputType2=PCB 3D Print
+OutputName2=PCB 3D Print BOT
+OutputCategory2=Documentation
+OutputDocumentPath2=
+OutputVariantName2=
+OutputEnabled2=0
+OutputEnabled2_OutputMedium1=0
+OutputEnabled2_OutputMedium2=2
+OutputEnabled2_OutputMedium3=0
+OutputEnabled2_OutputMedium4=0
+OutputDefault2=0
+PageOptions2=Record=PageOptions|CenterHorizontal=True|CenterVertical=True|PrintScale=3.90|XCorrection=1.00|YCorrection=1.00|PrintKind=1|BorderSize=5000000|LeftOffset=0|BottomOffset=0|Orientation=2|PaperLength=1000|PaperWidth=1000|Scale=100|PaperSource=7|PrintQuality=-3|MediaType=1|DitherType=10|PrintScaleMode=1|PaperKind=Letter|PaperIndex=1
+Configuration2_Name1=OutputConfigurationParameter1
+Configuration2_Item1=Record=Pcb3DPrintView|ResX=600|ResY=600|ViewX=29264088|ViewY=46929132|LookAtX=42297088|LookAtY=33464566|LookAtZ=0|UpX=0|UpY=1|UpZ=0|FOV=0|QuatX=0|QuatY=0|QuatZ=0|QuatW=1|Zoom=1.84533564354014E-5|UnitsPercent=True|UnitsDPI=True|LockResAspect=True|ViewConfigType=.config_3d|CustomCamera=False|ViewFromTop=False|ScreenWidth=0|ScreenHeight=0|ImageOutputType=1|ViewConfig= |DocumentPath=G:\.shortcut-targets-by-id\1I7He_iJmfkJ0eVKHMBRRRDJklaMq9t08\ABLE Drive\R&D\ABLE Exoskeleton\Electronics\ABS_4B_OENC\ABS_4B_OENC.PcbDoc
+OutputType3=Gerber X2
+OutputName3=GERBERS
+OutputCategory3=Fabrication
+OutputDocumentPath3=
+OutputVariantName3=
+OutputEnabled3=1
+OutputEnabled3_OutputMedium1=0
+OutputEnabled3_OutputMedium2=0
+OutputEnabled3_OutputMedium3=0
+OutputEnabled3_OutputMedium4=2
+OutputDefault3=0
+Configuration3_Name1=OutputConfigurationParameter1
+Configuration3_Item1=BoardID=OYVXHQRV|FileComment= |FileSubject=Autodetect|GenerateDRCRulesFile=True|GenerateReports=False|GerberUnit=Metric|IncludeUnconnectedMidLayerPads=True|MergePadAndRegion=False|MinusApertureTolerance=50|NumberOfDecimals=5|OptimizeChangeLocationCommands=True|OutputFormat=Different|PlotBackDrillingPairs=False|PlotBlindViasPairs=False|PlotBoardProfile=True|PlotBoardProfileFileName= |PlotCounterHolesPairs=False|PlotDrillDrawingPairs=False|PlotDrillGuidePairs=False|PlotMicroViasPairs=False|PlotNPTHPair0_Backdrill=False|PlotNPTHPair0_Checked=True|PlotNPTHPair0_DrillType=Regular|PlotNPTHPair0_FileName= |PlotNPTHPair0_HighLayer=Top Layer|PlotNPTHPair0_LowLayer=Bottom Layer|PlotNPTHPairs=False|PlotPTHPair0_Backdrill=False|PlotPTHPair0_Checked=True|PlotPTHPair0_DrillType=Regular|PlotPTHPair0_FileName= |PlotPTHPair0_HighLayer=Top Layer|PlotPTHPair0_LowLayer=Bottom Layer|PlotPTHPairs=False|PlotViaTypeDrillDrawingPairs=False|PlotViaTypeDrillGuidePairs=False|PlotViaTypeDrillPairs=False|PlotX2.Set=SerializeLayerHash.Version~2,ClassName~TPlotLayerStateArray,16777217~1,16777218~1,16777219~1,16842751~1,16973830~1,16973831~1,16973834~1,16973835~1,16973832~1,16973833~1,16973848~1,16973849~1|PlusApertureTolerance=50|Record=GerberX2View|Sorted=False|UncheckPlotDrillDrawingPair0_Backdrill=False|UncheckPlotDrillDrawingPair0_Checked=False|UncheckPlotDrillDrawingPair0_DrillType=Regular|UncheckPlotDrillDrawingPair0_FileName= |UncheckPlotDrillDrawingPair0_HighLayer=Bottom Layer|UncheckPlotDrillDrawingPair0_LowLayer=Top Layer|UncheckPlotDrillGuidePair0_Backdrill=False|UncheckPlotDrillGuidePair0_Checked=False|UncheckPlotDrillGuidePair0_DrillType=Regular|UncheckPlotDrillGuidePair0_FileName= |UncheckPlotDrillGuidePair0_HighLayer=Bottom Layer|UncheckPlotDrillGuidePair0_LowLayer=Top Layer|DocumentPath=C:\Users\Guim\Documents\PROJECTES\Upwork\PCB-Motor-v4-main\PCB_Motor\PCB_motor_v6\PCB_motor.PcbDoc
+OutputType4=Pick Place
+OutputName4=PANEL PnP
+OutputCategory4=Assembly
+OutputDocumentPath4=
+OutputVariantName4=
+OutputEnabled4=1
+OutputEnabled4_OutputMedium1=0
+OutputEnabled4_OutputMedium2=0
+OutputEnabled4_OutputMedium3=0
+OutputEnabled4_OutputMedium4=1
+OutputDefault4=0
+Configuration4_Name1=OutputConfigurationParameter1
+Configuration4_Item1=Record=PickPlaceView|Units=Metric|GenerateCSVFormat=True|GenerateTextFormat=False|ShowUnits=False|Separator=.|ExcludeFilterParam=False|IncludeVariations=False|IncludeStandardNoBOM=False|Filter= |FilterActive=False|YFlip=False|DifferentFootprints=False|Column#1=Name:Designator,Fixed:True,Metric:False,Visible:True,Sort:None,Position:0|Column#2=Name:Comment,Fixed:True,Metric:False,Visible:False,Sort:None,Position:1|Column#3=Name:Layer,Fixed:True,Metric:False,Visible:True,Sort:None,Position:4|Column#4=Name:Footprint,Fixed:True,Metric:False,Visible:False,Sort:None,Position:6|Column#5=Name:Footprint Description,Fixed:True,Metric:False,Visible:False,Sort:None,Position:7|Column#6=Name:Center-X,Fixed:True,Metric:True,Visible:True,Sort:None,Position:2|Column#7=Name:Center-Y,Fixed:True,Metric:True,Visible:True,Sort:None,Position:3|Column#8=Name:Rotation,Fixed:True,Metric:False,Visible:True,Sort:None,Position:5|Column#9=Name:Description,Fixed:True,Metric:False,Visible:False,Sort:None,Position:8|Column#10=Name:ComponentKind,Fixed:True,Metric:False,Visible:False,Sort:None,Position:9|Column#11=Name:Height,Fixed:True,Metric:True,Visible:False,Sort:None,Position:10|Column#12=Name:Ref-X,Fixed:True,Metric:True,Visible:False,Sort:None,Position:11|Column#13=Name:Ref-Y,Fixed:True,Metric:True,Visible:False,Sort:None,Position:12|Column#14=Name:Pad-X,Fixed:True,Metric:True,Visible:False,Sort:None,Position:13|Column#15=Name:Pad-Y,Fixed:True,Metric:True,Visible:False,Sort:None,Position:14|Column#16=Name:Variation,Fixed:True,Metric:False,Visible:False,Sort:None,Position:15|Column#17=Name:Package / Case,Fixed:False,Metric:False,Visible:False,Sort:None,Position:79,Type:0|Column#18=Name:ComponentLink3Description,Fixed:False,Metric:False,Visible:False,Sort:None,Position:29,Type:0|Column#19=Name:ComponentLink7Description,Fixed:False,Metric:False,Visible:False,Sort:None,Position:37,Type:0|Column#20=Name:Package Quantity,Fixed:False,Metric:False,Visible:False,Sort:None,Position:81,Type:0|Column#21=Name:RoHS Compliant,Fixed:False,Metric:False,Visible:False,Sort:None,Position:96,Type:0|Column#22=Name:ComponentLink7URL,Fixed:False,Metric:False,Visible:False,Sort:None,Position:38,Type:0|Column#23=Name:Min Operating Temperature,Fixed:False,Metric:False,Visible:False,Sort:None,Position:70,Type:0|Column#24=Name:ComponentLink4URL,Fixed:False,Metric:False,Visible:False,Sort:None,Position:32,Type:0|Column#25=Name:Category,Fixed:False,Metric:False,Visible:False,Sort:None,Position:23,Type:0|Column#26=Name:Power (Watts),Fixed:False,Metric:False,Visible:False,Sort:None,Position:87,Type:0|Column#27=Name:Reach SVHC Compliant,Fixed:False,Metric:False,Visible:False,Sort:None,Position:93,Type:0|Column#28=Name:packaging,Fixed:False,Metric:False,Visible:False,Sort:None,Position:83,Type:0|Column#29=Name:Case/Package,Fixed:False,Metric:False,Visible:False,Sort:None,Position:22,Type:0|Column#30=Name:Thickness (Max),Fixed:False,Metric:False,Visible:False,Sort:None,Position:115,Type:0|Column#31=Name:ComponentLink8Description,Fixed:False,Metric:False,Visible:False,Sort:None,Position:39,Type:0|Column#32=Name:LastModified,Fixed:False,Metric:False,Visible:False,Sort:None,Position:51,Type:0|Column#33=Name:ComponentLink3URL,Fixed:False,Metric:False,Visible:False,Sort:None,Position:30,Type:0|Column#34=Name:TemperatureMaxC,Fixed:False,Metric:False,Visible:False,Sort:None,Position:113,Type:0|Column#35=Name:Resistance,Fixed:False,Metric:False,Visible:False,Sort:None,Position:94,Type:0|Column#36=Name:IngExtra,Fixed:False,Metric:False,Visible:False,Sort:None,Position:47,Type:0|Column#37=Name:BOM Note,Fixed:False,Metric:False,Visible:False,Sort:None,Position:20,Type:0|Column#38=Name:IsGeneric,Fixed:False,Metric:False,Visible:False,Sort:None,Position:49,Type:0|Column#39=Name:Supplier5,Fixed:False,Metric:False,Visible:False,Sort:None,Position:108,Type:0|Column#40=Name:AlternativePN,Fixed:False,Metric:False,Visible:False,Sort:None,Position:18,Type:0|Column#41=Name:Package Type,Fixed:False,Metric:False,Visible:False,Sort:None,Position:82,Type:0|Column#42=Name:Supplier 1,Fixed:False,Metric:False,Visible:False,Sort:None,Position:100,Type:0|Column#43=Name:Tolerance,Fixed:False,Metric:False,Visible:False,Sort:None,Position:116,Type:0|Column#44=Name:SupplierPartNumber5,Fixed:False,Metric:False,Visible:False,Sort:None,Position:110,Type:0|Column#45=Name:Published,Fixed:False,Metric:False,Visible:False,Sort:None,Position:90,Type:0|Column#46=Name:Lifecycle Status,Fixed:False,Metric:False,Visible:False,Sort:None,Position:55,Type:0|Column#47=Name:Supplier4,Fixed:False,Metric:False,Visible:False,Sort:None,Position:107,Type:0|Column#48=Name:SupplierPartNumber4,Fixed:False,Metric:False,Visible:False,Sort:None,Position:109,Type:0|Column#49=Name:Max Breakdown Voltage,Fixed:False,Metric:False,Visible:False,Sort:None,Position:66,Type:0|Column#50=Name:RoHS,Fixed:False,Metric:False,Visible:False,Sort:None,Position:95,Type:0|Column#51=Name:ManufacturerPartNumber4,Fixed:False,Metric:False,Visible:False,Sort:None,Position:63,Type:0|Column#52=Name:ComponentLink4Description,Fixed:False,Metric:False,Visible:False,Sort:None,Position:31,Type:0|Column#53=Name:Composition,Fixed:False,Metric:False,Visible:False,Sort:None,Position:41,Type:0|Column#54=Name:ComponentLink5Description,Fixed:False,Metric:False,Visible:False,Sort:None,Position:33,Type:0|Column#55=Name:componentlink2description,Fixed:False,Metric:False,Visible:False,Sort:None,Position:27,Type:0|Column#56=Name:Lead Free,Fixed:False,Metric:False,Visible:False,Sort:None,Position:53,Type:0|Column#57=Name:Radiation Hardening,Fixed:False,Metric:False,Visible:False,Sort:None,Position:91,Type:0|Column#58=Name:Max Power Dissipation,Fixed:False,Metric:False,Visible:False,Sort:None,Position:68,Type:0|Column#59=Name:Temperature Coefficient,Fixed:False,Metric:False,Visible:False,Sort:None,Position:112,Type:0|Column#60=Name:ManufacturerPN,Fixed:False,Metric:False,Visible:False,Sort:None,Position:65,Type:0|Column#61=Name:componentlink1url,Fixed:False,Metric:False,Visible:False,Sort:None,Position:26,Type:0|Column#62=Name:InternalStock,Fixed:False,Metric:False,Visible:False,Sort:None,Position:48,Type:0|Column#63=Name:MTBF55h,Fixed:False,Metric:False,Visible:False,Sort:None,Position:74,Type:0|Column#64=Name:Value,Fixed:False,Metric:False,Visible:False,Sort:None,Position:117,Type:0|Column#65=Name:Max Supply Voltage,Fixed:False,Metric:False,Visible:False,Sort:None,Position:69,Type:0|Column#66=Name:series,Fixed:False,Metric:False,Visible:False,Sort:None,Position:97,Type:0|Column#67=Name:AdditionalInformation,Fixed:False,Metric:False,Visible:False,Sort:None,Position:16,Type:0|Column#68=Name:componentlink1description,Fixed:False,Metric:False,Visible:False,Sort:None,Position:25,Type:0|Column#69=Name:Features,Fixed:False,Metric:False,Visible:False,Sort:None,Position:43,Type:0|Column#70=Name:Mounting Type,Fixed:False,Metric:False,Visible:False,Sort:None,Position:73,Type:0|Column#71=Name:Supplier Part Number 3,Fixed:False,Metric:False,Visible:False,Sort:None,Position:106,Type:0|Column#72=Name:price,Fixed:False,Metric:False,Visible:False,Sort:None,Position:88,Type:0|Column#73=Name:Height,Fixed:False,Metric:False,Visible:False,Sort:None,Position:44,Type:0|Column#74=Name:ComponentLink6Description,Fixed:False,Metric:False,Visible:False,Sort:None,Position:35,Type:0|Column#75=Name:AlternativeManufacturer,Fixed:False,Metric:False,Visible:False,Sort:None,Position:17,Type:0|Column#76=Name:Height - Seated (Max),Fixed:False,Metric:False,Visible:False,Sort:None,Position:45,Type:0|Column#77=Name:Number of Terminations,Fixed:False,Metric:False,Visible:False,Sort:None,Position:77,Type:0|Column#78=Name:Voltage - Rated,Fixed:False,Metric:False,Visible:False,Sort:None,Position:118,Type:0|Column#79=Name:ComponentLink8URL,Fixed:False,Metric:False,Visible:False,Sort:None,Position:40,Type:0|Column#80=Name:ComponentLink5URL,Fixed:False,Metric:False,Visible:False,Sort:None,Position:34,Type:0|Column#81=Name:Max Operating Temperature,Fixed:False,Metric:False,Visible:False,Sort:None,Position:67,Type:0|Column#82=Name:Manufacturer4,Fixed:False,Metric:False,Visible:False,Sort:None,Position:59,Type:0|Column#83=Name:Part Number,Fixed:False,Metric:False,Visible:False,Sort:None,Position:84,Type:0|Column#84=Name:Minimum Order,Fixed:False,Metric:False,Visible:False,Sort:None,Position:72,Type:0|Column#85=Name:Min Supply Voltage,Fixed:False,Metric:False,Visible:False,Sort:None,Position:71,Type:0|Column#86=Name:Part Status,Fixed:False,Metric:False,Visible:False,Sort:None,Position:85,Type:0|Column#87=Name:Length,Fixed:False,Metric:False,Visible:False,Sort:None,Position:54,Type:0|Column#88=Name:Ratings,Fixed:False,Metric:False,Visible:False,Sort:None,Position:92,Type:0|Column#89=Name:Supplier Part Number 2,Fixed:False,Metric:False,Visible:False,Sort:None,Position:105,Type:0|Column#90=Name:Manufacturer3,Fixed:False,Metric:False,Visible:False,Sort:None,Position:58,Type:0|Column#91=Name:CompletePN,Fixed:False,Metric:False,Visible:False,Sort:None,Position:24,Type:0|Column#92=Name:TemperatureMinC,Fixed:False,Metric:False,Visible:False,Sort:None,Position:114,Type:0|Column#93=Name:Technology,Fixed:False,Metric:False,Visible:False,Sort:None,Position:111,Type:0|Column#94=Name:Package Name,Fixed:False,Metric:False,Visible:False,Sort:None,Position:80,Type:0|Column#95=Name:Pricing 1,Fixed:False,Metric:False,Visible:False,Sort:None,Position:89,Type:0|Column#96=Name:Stock 1,Fixed:False,Metric:False,Visible:False,Sort:None,Position:99,Type:0|Column#97=Name:Applications,Fixed:False,Metric:False,Visible:False,Sort:None,Position:19,Type:0|Column#98=Name:Width,Fixed:False,Metric:False,Visible:False,Sort:None,Position:119,Type:0|Column#99=Name:Nominal Supply Current,Fixed:False,Metric:False,Visible:False,Sort:None,Position:75,Type:0|Column#100=Name:Size / Dimension,Fixed:False,Metric:False,Visible:False,Sort:None,Position:98,Type:0|Column#101=Name:IngeniaID,Fixed:False,Metric:False,Visible:False,Sort:None,Position:46,Type:0|Column#102=Name:ManufacturerName,Fixed:False,Metric:False,Visible:False,Sort:None,Position:61,Type:0|Column#103=Name:Manufacturer5,Fixed:False,Metric:False,Visible:False,Sort:None,Position:60,Type:0|Column#104=Name:Supplier Part Number 1,Fixed:False,Metric:False,Visible:False,Sort:None,Position:104,Type:0|Column#105=Name:componentlink2url,Fixed:False,Metric:False,Visible:False,Sort:None,Position:28,Type:0|Column#106=Name:manufacturer,Fixed:False,Metric:False,Visible:False,Sort:None,Position:56,Type:0|Column#107=Name:Supplier Device Package,Fixed:False,Metric:False,Visible:False,Sort:None,Position:103,Type:0|Column#108=Name:Supplier 2,Fixed:False,Metric:False,Visible:False,Sort:None,Position:101,Type:0|Column#109=Name:lastupdated,Fixed:False,Metric:False,Visible:False,Sort:None,Position:52,Type:0|Column#110=Name:Supplier 3,Fixed:False,Metric:False,Visible:False,Sort:None,Position:102,Type:0|Column#111=Name:ManufacturerPartNumber3,Fixed:False,Metric:False,Visible:False,Sort:None,Position:62,Type:0|Column#112=Name:Device Package,Fixed:False,Metric:False,Visible:False,Sort:None,Position:42,Type:0|Column#113=Name:ComponentLink6URL,Fixed:False,Metric:False,Visible:False,Sort:None,Position:36,Type:0|Column#114=Name:IsPreferred,Fixed:False,Metric:False,Visible:False,Sort:None,Position:50,Type:0|Column#115=Name:Capacitance,Fixed:False,Metric:False,Visible:False,Sort:None,Position:21,Type:0|Column#116=Name:Number of Elements,Fixed:False,Metric:False,Visible:False,Sort:None,Position:76,Type:0|Column#117=Name:partid,Fixed:False,Metric:False,Visible:False,Sort:None,Position:86,Type:0|Column#118=Name:ManufacturerPartNumber5,Fixed:False,Metric:False,Visible:False,Sort:None,Position:64,Type:0|Column#119=Name:Operating Temperature,Fixed:False,Metric:False,Visible:False,Sort:None,Position:78,Type:0|Column#120=Name:Manufacturer Part Number,Fixed:False,Metric:False,Visible:False,Sort:None,Position:57,Type:0|Column#121=Name:JESD-609 Code,Fixed:False,Metric:False,Visible:False,Sort:None,Position:149,Type:0|Column#122=Name:Moisture Sensitivity Level,Fixed:False,Metric:False,Visible:False,Sort:None,Position:157,Type:0|Column#123=Name:Cod. Fab.,Fixed:False,Metric:False,Visible:False,Sort:None,Position:132,Type:0|Column#124=Name:Alt. 1,Fixed:False,Metric:False,Visible:False,Sort:None,Position:125,Type:0|Column#125=Name:Output Current1-Max,Fixed:False,Metric:False,Visible:False,Sort:None,Position:175,Type:0|Column#126=Name:Channels,Fixed:False,Metric:False,Visible:False,Sort:None,Position:129,Type:0|Column#127=Name:Number of ADC Channels,Fixed:False,Metric:False,Visible:False,Sort:None,Position:161,Type:0|Column#128=Name:Package Body Material,Fixed:False,Metric:False,Visible:False,Sort:None,Position:180,Type:0|Column#129=Name:Frequency,Fixed:False,Metric:False,Visible:False,Sort:None,Position:144,Type:0|Column#130=Name:Terminal Pitch,Fixed:False,Metric:False,Visible:False,Sort:None,Position:201,Type:0|Column#131=Name:Diode Type,Fixed:False,Metric:False,Visible:False,Sort:None,Position:140,Type:0|Column#132=Name:Number of A/D Converters,Fixed:False,Metric:False,Visible:False,Sort:None,Position:160,Type:0|Column#133=Name:Diode Element Material,Fixed:False,Metric:False,Visible:False,Sort:None,Position:139,Type:0|Column#134=Name:Operating Temperature, TJ-Max,Fixed:False,Metric:False,Visible:False,Sort:None,Position:172,Type:0|Column#135=Name:Number of PWM Channels,Fixed:False,Metric:False,Visible:False,Sort:None,Position:167,Type:0|Column#136=Name:Line Regulation-Max,Fixed:False,Metric:False,Visible:False,Sort:None,Position:150,Type:0|Column#137=Name:Terminal Form,Fixed:False,Metric:False,Visible:False,Sort:None,Position:200,Type:0|Column#138=Name:Number of SPI Channels,Fixed:False,Metric:False,Visible:False,Sort:None,Position:168,Type:0|Column#139=Name:Breakdown Voltage-Nom,Fixed:False,Metric:False,Visible:False,Sort:None,Position:127,Type:0|Column#140=Name:Pins,Fixed:False,Metric:False,Visible:False,Sort:None,Position:185,Type:0|Column#141=Name:Oscillator Type,Fixed:False,Metric:False,Visible:False,Sort:None,Position:174,Type:0|Column#142=Name:Dropout Voltage1-Max,Fixed:False,Metric:False,Visible:False,Sort:None,Position:141,Type:0|Column#143=Name:Adjustability,Fixed:False,Metric:False,Visible:False,Sort:None,Position:124,Type:0|Column#144=Name:Number of Programmable I/O,Fixed:False,Metric:False,Visible:False,Sort:None,Position:166,Type:0|Column#145=Name:Peripherals,Fixed:False,Metric:False,Visible:False,Sort:None,Position:184,Type:0|Column#146=Name:Prov. 3,Fixed:False,Metric:False,Visible:False,Sort:None,Position:191,Type:0|Column#147=Name:Load Regulation-Max,Fixed:False,Metric:False,Visible:False,Sort:None,Position:151,Type:0|Column#148=Name:Core Architecture,Fixed:False,Metric:False,Visible:False,Sort:None,Position:135,Type:0|Column#149=Name:DC Resistance-Max,Fixed:False,Metric:False,Visible:False,Sort:None,Position:138,Type:0|Column#150=Name:Output Impedance,Fixed:False,Metric:False,Visible:False,Sort:None,Position:176,Type:0|Column#151=Name:Number of I2C Channels,Fixed:False,Metric:False,Visible:False,Sort:None,Position:164,Type:0|Column#152=Name:Prov. 1 - Cod.,Fixed:False,Metric:False,Visible:False,Sort:None,Position:188,Type:0|Column#153=Name:Rep Pk Reverse Voltage-Max,Fixed:False,Metric:False,Visible:False,Sort:None,Position:197,Type:0|Column#154=Name:Surface Mount,Fixed:False,Metric:False,Visible:False,Sort:None,Position:198,Type:0|Column#155=Name:_Type,Fixed:False,Metric:False,Visible:False,Sort:None,Position:122,Type:0|Column#156=Name:Min Frequency,Fixed:False,Metric:False,Visible:False,Sort:None,Position:156,Type:0|Column#157=Name:.Esp. Ad. 1,Fixed:False,Metric:False,Visible:False,Sort:None,Position:120,Type:0|Column#158=Name:Alt. 2,Fixed:False,Metric:False,Visible:False,Sort:None,Position:126,Type:0|Column#159=Name:Current Rating,Fixed:False,Metric:False,Visible:False,Sort:None,Position:136,Type:0|Column#160=Name:Output Voltage1-Min,Fixed:False,Metric:False,Visible:False,Sort:None,Position:178,Type:0|Column#161=Name:Package Style,Fixed:False,Metric:False,Visible:False,Sort:None,Position:182,Type:0|Column#162=Name:Terminal Position,Fixed:False,Metric:False,Visible:False,Sort:None,Position:202,Type:0|Column#163=Name:JEDEC-95 Code,Fixed:False,Metric:False,Visible:False,Sort:None,Position:147,Type:0|Column#164=Name:JESD-30 Code,Fixed:False,Metric:False,Visible:False,Sort:None,Position:148,Type:0|Column#165=Name:Min Breakdown Voltage,Fixed:False,Metric:False,Visible:False,Sort:None,Position:155,Type:0|Column#166=Name:Reference Standard,Fixed:False,Metric:False,Visible:False,Sort:None,Position:195,Type:0|Column#167=Name:Clamping Voltage-Max,Fixed:False,Metric:False,Visible:False,Sort:None,Position:130,Type:0|Column#168=Name:Memory Size,Fixed:False,Metric:False,Visible:False,Sort:None,Position:154,Type:0|Column#169=Name:Operating Temperature, TJ-Min,Fixed:False,Metric:False,Visible:False,Sort:None,Position:173,Type:0|Column#170=Name:Input Voltage Absolute-Max,Fixed:False,Metric:False,Visible:False,Sort:None,Position:145,Type:0|Column#171=Name:Watchdog Timer,Fixed:False,Metric:False,Visible:False,Sort:None,Position:205,Type:0|Column#172=Name:Data Bus Width,Fixed:False,Metric:False,Visible:False,Sort:None,Position:137,Type:0|Column#173=Name:Case Code,Fixed:False,Metric:False,Visible:False,Sort:None,Position:128,Type:0|Column#174=Name:Additional Feature,Fixed:False,Metric:False,Visible:False,Sort:None,Position:123,Type:0|Column#175=Name:Dropout Voltage1-Nom,Fixed:False,Metric:False,Visible:False,Sort:None,Position:142,Type:0|Column#176=Name:Number of Timers/Counters,Fixed:False,Metric:False,Visible:False,Sort:None,Position:169,Type:0|Column#177=Name:Mounting Technology,Fixed:False,Metric:False,Visible:False,Sort:None,Position:158,Type:0|Column#178=Name:Polarity,Fixed:False,Metric:False,Visible:False,Sort:None,Position:186,Type:0|Column#179=Name:Number of Outputs,Fixed:False,Metric:False,Visible:False,Sort:None,Position:165,Type:0|Column#180=Name:RAM Size,Fixed:False,Metric:False,Visible:False,Sort:None,Position:194,Type:0|Column#181=Name:Qualification Status,Fixed:False,Metric:False,Visible:False,Sort:None,Position:193,Type:0|Column#182=Name:Number of USB Channels,Fixed:False,Metric:False,Visible:False,Sort:None,Position:171,Type:0|Column#183=Name:Terminal Finish,Fixed:False,Metric:False,Visible:False,Sort:None,Position:199,Type:0|Column#184=Name:Number of I/Os,Fixed:False,Metric:False,Visible:False,Sort:None,Position:163,Type:0|Column#185=Name:Prov. 2,Fixed:False,Metric:False,Visible:False,Sort:None,Position:189,Type:0|Column#186=Name:Construction,Fixed:False,Metric:False,Visible:False,Sort:None,Position:134,Type:0|Column#187=Name:Memory Format,Fixed:False,Metric:False,Visible:False,Sort:None,Position:153,Type:0|Column#188=Name:Non-rep Peak Rev Power Dis-Max,Fixed:False,Metric:False,Visible:False,Sort:None,Position:159,Type:0|Column#189=Name:Output Voltage1-Max,Fixed:False,Metric:False,Visible:False,Sort:None,Position:177,Type:0|Column#190=Name:Number of UART Channels,Fixed:False,Metric:False,Visible:False,Sort:None,Position:170,Type:0|Column#191=Name:Type,Fixed:False,Metric:False,Visible:False,Sort:None,Position:203,Type:0|Column#192=Name:Voltage Tolerance-Max,Fixed:False,Metric:False,Visible:False,Sort:None,Position:204,Type:0|Column#193=Name:Cod. Int.,Fixed:False,Metric:False,Visible:False,Sort:None,Position:133,Type:0|Column#194=Name:Package Shape,Fixed:False,Metric:False,Visible:False,Sort:None,Position:181,Type:0|Column#195=Name:.Esp. Ad. 2,Fixed:False,Metric:False,Visible:False,Sort:None,Position:121,Type:0|Column#196=Name:Filter Type,Fixed:False,Metric:False,Visible:False,Sort:None,Position:143,Type:0|Column#197=Name:Number of Channels,Fixed:False,Metric:False,Visible:False,Sort:None,Position:162,Type:0|Column#198=Name:Prov. 2 - Cod.,Fixed:False,Metric:False,Visible:False,Sort:None,Position:190,Type:0|Column#199=Name:Clock Frequency,Fixed:False,Metric:False,Visible:False,Sort:None,Position:131,Type:0|Column#200=Name:Prov. 3 - Cod.,Fixed:False,Metric:False,Visible:False,Sort:None,Position:192,Type:0|Column#201=Name:Peak Reflow Temperature (Cel),Fixed:False,Metric:False,Visible:False,Sort:None,Position:183,Type:0|Column#202=Name:Interface,Fixed:False,Metric:False,Visible:False,Sort:None,Position:146,Type:0|Column#203=Name:Regulator Type,Fixed:False,Metric:False,Visible:False,Sort:None,Position:196,Type:0|Column#204=Name:Output Voltage1-Nom,Fixed:False,Metric:False,Visible:False,Sort:None,Position:179,Type:0|Column#205=Name:Prov. 1,Fixed:False,Metric:False,Visible:False,Sort:None,Position:187,Type:0|Column#206=Name:Material,Fixed:False,Metric:False,Visible:False,Sort:None,Position:152,Type:0|DocumentPath=G:\Shared drives\[MT] R&D - Electronics\Projects\ABLE Daily\hid_remote\1.0\Project\hid_remote\hid_remote.PcbDoc
+OutputType5=NC Drill
+OutputName5=NC Drill Files
+OutputCategory5=Fabrication
+OutputDocumentPath5=
+OutputVariantName5=
+OutputEnabled5=1
+OutputEnabled5_OutputMedium1=0
+OutputEnabled5_OutputMedium2=0
+OutputEnabled5_OutputMedium3=0
+OutputEnabled5_OutputMedium4=3
+OutputDefault5=0
+Configuration5_Name1=OutputConfigurationParameter1
+Configuration5_Item1=BoardEdgeRoutToolDia=2000000|GenerateBoardEdgeRout=False|GenerateDrilledSlotsG85=False|GenerateEIADrillFile=False|GenerateSeparatePlatedNonPlatedFiles=True|GenerateSeparateViaTypeFiles=False|GenerateToolsByDrillSymbols=False|NumberOfDecimals=4|NumberOfUnits=4|OptimizeChangeLocationCommands=True|OriginPosition=Relative|Record=DrillView|Units=Metric|ZeroesMode=SuppressTrailingZeroes|DocumentPath=G:\Shared drives\[MT] R&D - Electronics\Projects\ABLE Daily\hid_remote\1.0\Project\hid_remote\hid_remote.PcbDoc
+OutputType6=ExportPARASOLID
+OutputName6=3D CAD
+OutputCategory6=Export
+OutputDocumentPath6=
+OutputVariantName6=
+OutputEnabled6=1
+OutputEnabled6_OutputMedium1=0
+OutputEnabled6_OutputMedium2=0
+OutputEnabled6_OutputMedium3=0
+OutputEnabled6_OutputMedium4=4
+OutputDefault6=0
+Configuration6_Name1=OutputConfigurationParameter1
+Configuration6_Item1=Record=ExportSTEPView|ExportComponentOptions=0|ExportModelsOption=2|ExportHolesOption=0|CanSelectPrimitives=False|IncludeMechanicalPadHoles=False|IncludeElectricalPadHoles=False|IncludeFreePadHoles=False|ExportFoldedBoard=True|ExportFoldedBoardRate=0|ComponentSuffixType=0|ComponentSuffix= |ExportCopperOption=0|ExportCopperLayer=1|ExportPadAndViaBarrelsOnly=False|IgnoreBoardCopperLayerColors=False|ExportAsSinglePart=False|IncludeCoverLayer=True|SkipFreeBodies=False|SkipHidden=False|DocumentPath=G:\.shortcut-targets-by-id\1I7He_iJmfkJ0eVKHMBRRRDJklaMq9t08\ABLE Drive\R&D\ABLE Exoskeleton\Electronics\ABS_4B_OENC\ABS_4B_OENC.PcbDoc
+OutputType7=Schematic Print
+OutputName7=Schematic Prints
+OutputCategory7=Documentation
+OutputDocumentPath7=
+OutputVariantName7=[No Variations]
+OutputEnabled7=0
+OutputEnabled7_OutputMedium1=0
+OutputEnabled7_OutputMedium2=0
+OutputEnabled7_OutputMedium3=1
+OutputEnabled7_OutputMedium4=0
+OutputDefault7=0
+PageOptions7=Record=PageOptions|CenterHorizontal=True|CenterVertical=True|PrintScale=0.70|XCorrection=1.00|YCorrection=1.00|PrintKind=0|BorderSize=5000000|LeftOffset=0|BottomOffset=0|Orientation=2|PaperLength=1000|PaperWidth=1000|Scale=100|PaperSource=7|PrintQuality=-3|MediaType=1|DitherType=10|PrintScaleMode=1|PaperKind=Letter|PaperIndex=1
+Configuration7_Name1=OutputConfigurationParameter1
+Configuration7_Item1=Record=SchPrintView|ShowNoERC=True|ShowParamSet=True|ShowProbe=True|ShowBlanket=True|NoERCSymbolsToShow="Thin Cross","Thick Cross","Small Cross",Checkbox,Triangle|ShowNote=True|ShowNoteCollapsed=True|ShowOpenEnds=True|ExpandDesignator=True|ExpandNetLabel=False|ExpandPort=False|ExpandSheetNum=False|ExpandDocNum=False|PrintArea=0|PrintAreaRect.X1=0|PrintAreaRect.Y1=0|PrintAreaRect.X2=0|PrintAreaRect.Y2=0|DocumentPath=
+OutputType8=BOM_PartType
+OutputName8=BOM
+OutputCategory8=Report
+OutputDocumentPath8=[ActiveBOM Document]
+OutputVariantName8=
+OutputEnabled8=1
+OutputEnabled8_OutputMedium1=0
+OutputEnabled8_OutputMedium2=0
+OutputEnabled8_OutputMedium3=0
+OutputEnabled8_OutputMedium4=5
+OutputDefault8=0
+PageOptions8=Record=PageOptions|CenterHorizontal=True|CenterVertical=True|PrintScale=1.00|XCorrection=1.00|YCorrection=1.00|PrintKind=1|BorderSize=5000000|LeftOffset=0|BottomOffset=0|Orientation=2|PaperLength=1000|PaperWidth=1000|Scale=100|PaperSource=7|PrintQuality=-3|MediaType=1|DitherType=10|PrintScaleMode=1|PaperKind=Letter|PaperIndex=1
+Configuration8_Name1=ColumnNameFormat
+Configuration8_Item1=CaptionAsName
+Configuration8_Name2=FilterString
+Configuration8_Item2=Not IsNullOrEmpty([LCSC])
+Configuration8_Name3=FilterString_Base
+Configuration8_Item3=Not IsNullOrEmpty([LCSC])
+Configuration8_Name4=General
+Configuration8_Item4=OpenExported=False|AddToProject=False|ReportBOMViolationsInMessages=False|ForceFit=False|NotFitted=False|Database=False|DatabasePriority=False|IncludePcbData=False|IncludeVaultData=True|IncludeCloudData=False|IncludeDocumentData=True|IncludeAlternatives=False|ShowExportOptions=True|TemplateFilename=|TemplateVaultGuid=|TemplateItemGuid=|TemplateRevisionGuid=|BatchMode=5|FormWidth=1200|FormHeight=710|SupplierProdQty=1|SupplierAutoQty=False|SupplierUseCachedPricing=False|SupplierCurrency=USD|SolutionsPerItem=1|SuppliersPerSolution=1|ViewType=0|BomSetName=
+Configuration8_Name5=GroupOrder
+Configuration8_Item5=
+Configuration8_Name6=SortOrder
+Configuration8_Item6=LCSC=Down
+Configuration8_Name7=VisibleOrder
+Configuration8_Item7=Comment=83|Designator=100|Footprint=100|LCSC=100
+Configuration8_Name8=VisibleOrder_Base
+Configuration8_Item8=Comment=83|Designator=100|Footprint=100|LCSC=100
+Configuration8_Name9=VisibleOrder_Consolidated
+Configuration8_Item9=Line #=100|Comment=100|Description=100|Designator=100|Quantity=100|Manufacturer 1=97|Manufacturer Part Number 1=161|Manufacturer Lifecycle 1=141|Supplier 1=71|Supplier Part Number 1=136|Supplier Unit Price 1=121|Supplier Subtotal 1=115|Quantity@BASIC=100|Price@BASIC=100
+Configuration8_Name10=VisibleOrder_Flat
+Configuration8_Item10=Line #=100|Comment=100|Description=100|Designator=100|Manufacturer 1=97|Manufacturer Part Number 1=161|Manufacturer Lifecycle 1=141|Supplier 1=71|Supplier Part Number 1=136|Supplier Unit Price 1=121|Supplier Subtotal 1=115
+
+[PublishSettings]
+OutputFilePath2=G:\.shortcut-targets-by-id\1I7He_iJmfkJ0eVKHMBRRRDJklaMq9t08\ABLE Drive\R&D\ABLE Exoskeleton\Electronics\ABS_4B_OENC\Project Outputs for ABS_4B_OENC\Job1.PDF
+ReleaseManaged2=1
+OutputBasePath2=Project Outputs for iot_hdmi_mux
+OutputPathMedia2=
+OutputPathMediaValue2=
+OutputPathOutputer2=[Output Type]
+OutputPathOutputerPrefix2=
+OutputPathOutputerValue2=
+OutputFileName2=Assembly3D.PDF
+OutputFileNameMulti2=
+UseOutputNameForMulti2=0
+OutputFileNameSpecial2=
+OpenOutput2=1
+PromptOverwrite2=1
+PublishMethod2=0
+ZoomLevel2=50
+FitSCHPrintSizeToDoc2=1
+FitPCBPrintSizeToDoc2=1
+GenerateNetsInfo2=1
+MarkPins2=1
+MarkNetLabels2=1
+MarkPortsId2=1
+GenerateTOC2=1
+ShowComponentParameters2=1
+GlobalBookmarks2=0
+PDFACompliance2=Disabled
+PDFVersion2=Default
+OutputFilePath3=G:\.shortcut-targets-by-id\1I7He_iJmfkJ0eVKHMBRRRDJklaMq9t08\ABLE Drive\R&D\ABLE Exoskeleton\Electronics\ABS_4B_OENC\Project Outputs for ABS_4B_OENC\
+ReleaseManaged3=1
+OutputBasePath3=Project Outputs for iot_hdmi_mux
+OutputPathMedia3=
+OutputPathMediaValue3=
+OutputPathOutputer3=
+OutputPathOutputerPrefix3=
+OutputPathOutputerValue3=
+OutputFileName3=Manufacturing_JLC.PDF
+OutputFileNameMulti3=
+UseOutputNameForMulti3=0
+OutputFileNameSpecial3==ProjectName
+OpenOutput3=1
+PromptOverwrite3=1
+PublishMethod3=0
+ZoomLevel3=50
+FitSCHPrintSizeToDoc3=1
+FitPCBPrintSizeToDoc3=1
+GenerateNetsInfo3=1
+MarkPins3=1
+MarkNetLabels3=1
+MarkPortsId3=1
+GenerateTOC3=1
+ShowComponentParameters3=1
+GlobalBookmarks3=0
+PDFACompliance3=Disabled
+PDFVersion3=Default
+OutputFilePath4=C:\Users\Guim\Documents\PROJECTES\Upwork\PCB-Motor-v4-main\PCB_Motor\PCB_motor_v6\Project Outputs for PCB_motor\
+ReleaseManaged4=1
+OutputBasePath4=Project Outputs for iot_hdmi_mux
+OutputPathMedia4=
+OutputPathMediaValue4=
+OutputPathOutputer4=[Output Name]
+OutputPathOutputerPrefix4=
+OutputPathOutputerValue4=
+OutputFileName4=
+OutputFileNameMulti4=
+UseOutputNameForMulti4=1
+OutputFileNameSpecial4=
+OpenOutput4=1
+
+[GeneratedFilesSettings]
+RelativeOutputPath2=G:\.shortcut-targets-by-id\1I7He_iJmfkJ0eVKHMBRRRDJklaMq9t08\ABLE Drive\R&D\ABLE Exoskeleton\Electronics\ABS_4B_OENC\Project Outputs for ABS_4B_OENC\Job1.PDF
+OpenOutputs2=1
+RelativeOutputPath3=G:\.shortcut-targets-by-id\1I7He_iJmfkJ0eVKHMBRRRDJklaMq9t08\ABLE Drive\R&D\ABLE Exoskeleton\Electronics\ABS_4B_OENC\Project Outputs for ABS_4B_OENC\
+OpenOutputs3=1
+RelativeOutputPath4=C:\Users\Guim\Documents\PROJECTES\Upwork\PCB-Motor-v4-main\PCB_Motor\PCB_motor_v6\Project Outputs for PCB_motor\
+OpenOutputs4=1
+AddToProject4=1
+TimestampFolder4=0
+UseOutputName4=0
+OpenODBOutput4=0
+OpenGerberOutput4=0
+OpenNCDrillOutput4=0
+OpenIPCOutput4=0
+EnableReload4=0
+
