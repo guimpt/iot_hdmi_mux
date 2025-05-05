@@ -4,3 +4,7 @@ Project outputs*
 __Previews
 PowerAnalyzer*
 Renders
+
+build/
+sdkconfig
+sdkconfig.old
