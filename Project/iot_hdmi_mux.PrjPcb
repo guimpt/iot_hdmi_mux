@@ -182,16 +182,20 @@ DocumentPath=Project Outputs for iot_hdmi_mux\Design Rule Check - iot_hdmi_mux.h
 DItemRevisionGUID=
 
 [Parameter1]
-Name=PCB_Revision
-Value=iot_hdmi_mux_v1.0
+Name=
+Value=
 
 [Parameter2]
+Name=Project_revision
+Value=v1.1
+
+[Parameter3]
 Name=Project
 Value=IOT
 
-[Parameter3]
-Name=Project_revision
-Value=v1.0
+[Parameter4]
+Name=PCB_Revision
+Value=iot_hdmi_mux_v1.1
 
 [Configuration1]
 Name=Sources
