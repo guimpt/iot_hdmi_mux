@@ -63,7 +63,7 @@ Assembly=ASM-`ProjectName`-`VariantName`
 [Release]
 ReleaseTarget=2
 ReleaseFolderPath=[OutputPath]
-ReleaseZipPath=C:\Users\Guim\Documents\PROJECTES\Personal\iot_hdmi_mux\Project\Project Outputs for iot_hdmi_mux\release.zip
+ReleaseZipPath=C:\Users\Guim\Documents\PROJECTES\Personal\iot_hdmi_mux\Project\Project Outputs for iot_hdmi_mux\release_v1.1.zip
 
 [Document1]
 DocumentPath=iot_hdmi_mux.SchDoc
@@ -223,6 +223,18 @@ ParameterCount=0
 ConstraintFileCount=0
 ReleaseItemId=
 Variant=[No Variations]
+OutputJobsCount=1
+DocumentReferenceClass1=DocumentReference
+OutputJobFileName1=Manufacturing_JLC.OutJob
+ContentTypeGUID=0D12F8DC-E60C-11DF-B822-12313F0024A2
+ConfigurationType=Assembly
+
+[Configuration4]
+Name=Assembly BASIC
+ParameterCount=0
+ConstraintFileCount=0
+ReleaseItemId=
+Variant=BASIC
 OutputJobsCount=1
 DocumentReferenceClass1=DocumentReference
 OutputJobFileName1=Manufacturing_JLC.OutJob
