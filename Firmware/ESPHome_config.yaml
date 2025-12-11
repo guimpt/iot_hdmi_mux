@@ -1,0 +1,122 @@
+esphome:
+  name: hdmi-switch
+  friendly_name: HDMI Switch
+  on_boot:
+    priority: -100
+    then:
+      - lambda: |-
+          // Define GPIO pins
+          const gpio_num_t TS3_EN = GPIO_NUM_8;
+          const gpio_num_t TS3_SEL1 = GPIO_NUM_2;
+          const gpio_num_t TS3_SEL2 = GPIO_NUM_3;
+
+          // Define states
+          enum ts3_state_t {
+            TS3_STATE_DISABLED,
+            TS3_STATE_ALL_A,
+            TS3_STATE_ALL_B
+          };
+
+          // Function to set state
+          auto ts3_set_state = [&](ts3_state_t state){
+            switch(state){
+              case TS3_STATE_DISABLED:
+                gpio_set_level(TS3_EN, 0);
+                break;
+              case TS3_STATE_ALL_A:
+                gpio_set_level(TS3_EN, 1);
+                gpio_set_level(TS3_SEL1, 1);
+                gpio_set_level(TS3_SEL2, 0);
+                break;
+              case TS3_STATE_ALL_B:
+                gpio_set_level(TS3_EN, 1);
+                gpio_set_level(TS3_SEL1, 1);
+                gpio_set_level(TS3_SEL2, 1);
+                break;
+            }
+            ESP_LOGI("HDMI", "Switch set to %d", state);
+          };
+
+          // Initialize GPIO
+          gpio_reset_pin(TS3_EN);
+          gpio_set_direction(TS3_EN, GPIO_MODE_OUTPUT);
+
+          gpio_reset_pin(TS3_SEL1);
+          gpio_set_direction(TS3_SEL1, GPIO_MODE_OUTPUT);
+
+          gpio_reset_pin(TS3_SEL2);
+          gpio_set_direction(TS3_SEL2, GPIO_MODE_OUTPUT);
+
+          // Set default state
+          ts3_set_state(TS3_STATE_DISABLED);
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+
+logger:
+
+api:
+
+ota:
+
+web_server:
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  ap:
+    ssid: "Hdmi-Switch Fallback Hotspot"
+    password: "HDMI_SWITCH"
+
+captive_portal:
+
+# Initialize and control the HDMI switch on boot
+
+# Expose HDMI switch to Home Assistant as a dropdown
+select:
+  - platform: template
+    name: "HDMI Switch"
+    id: hdmi_switch_select
+    optimistic: true
+    options:
+      - Disabled
+      - All A
+      - All B
+    set_action:
+      - lambda: |-
+          const gpio_num_t TS3_EN = GPIO_NUM_8;
+          const gpio_num_t TS3_SEL1 = GPIO_NUM_2;
+          const gpio_num_t TS3_SEL2 = GPIO_NUM_3;
+
+          enum ts3_state_t {
+            TS3_STATE_DISABLED,
+            TS3_STATE_ALL_A,
+            TS3_STATE_ALL_B
+          };
+
+          auto ts3_set_state = [&](ts3_state_t state){
+            switch(state){
+              case TS3_STATE_DISABLED:
+                gpio_set_level(TS3_EN, 0);
+                break;
+              case TS3_STATE_ALL_A:
+                gpio_set_level(TS3_EN, 1);
+                gpio_set_level(TS3_SEL1, 1);
+                gpio_set_level(TS3_SEL2, 0);
+                break;
+              case TS3_STATE_ALL_B:
+                gpio_set_level(TS3_EN, 1);
+                gpio_set_level(TS3_SEL1, 1);
+                gpio_set_level(TS3_SEL2, 1);
+                break;
+            }
+            ESP_LOGI("HDMI", "Switch set to %d", state);
+          };
+
+          // Map select option to state
+          if(x == "Disabled") ts3_set_state(TS3_STATE_DISABLED);
+          else if(x == "All A") ts3_set_state(TS3_STATE_ALL_A);
+          else if(x == "All B") ts3_set_state(TS3_STATE_ALL_B);
