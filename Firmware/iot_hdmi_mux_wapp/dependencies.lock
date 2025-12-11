@@ -1,0 +1,27 @@
+dependencies:
+  espressif/mdns:
+    component_hash: 3ec0af5f6bce310512e90f482388d21cc7c0e99668172d2f895356165fc6f7c5
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.8.2
+  idf:
+    source:
+      type: idf
+    version: 5.4.1
+  protocol_examples_common:
+    dependencies: []
+    source:
+      path: C:\Users\Guim\esp\v5.4.1\esp-idf\examples\common_components\protocol_examples_common
+      type: local
+    version: '*'
+direct_dependencies:
+- espressif/mdns
+- protocol_examples_common
+manifest_hash: d80737ebeb8764b1ef695c67b77edb53eb15310299390dcc9dafb550b9e0a5ea
+target: esp32c3
+version: 2.0.0
