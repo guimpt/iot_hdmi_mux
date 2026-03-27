@@ -1,8 +1,11 @@
-# IoT HDMI Mux
-## The project
-Too lazy to get up from the sofa to change the HDMI cable? Don't want another remote controller lying around? This is your solution!
+[![Buy on Tindie](https://d2ss6ovg47m0r5.cloudfront.net/badges/tindie-mediums.png)](https://www.tindie.com/products/guimpt/iot-hdmi-switch-21/)
+# IoT HDMI Switch — WiFi-controlled, Home Assistant Native
 
-The IoT HDMI Mux integrates an ESP32-C3, a 2.4GHz antenna and a 2:1 HDMI mux IC in order to create a connected HDMI mux.
+A 2-input, 1-output HDMI 2.0 switch (4K @ 60Hz) you control over WiFi.
+Runs ESPHome natively. Shows up in Home Assistant as a select entity with no custom code required. Fully local, no cloud, no subscription.
+
+Built on an ESP32-C3 + Texas Instruments TS3DV642 FET switch.
+Pre-assembled units available on [Tindie](https://www.tindie.com/products/guimpt/iot-hdmi-switch-21/).
 
 ![Electronics render](https://github.com/guimpt/iot_hdmi_mux/blob/main/doc/render3.jpg)
 
@@ -10,8 +13,6 @@ The IoT HDMI Mux integrates an ESP32-C3, a 2.4GHz antenna and a 2:1 HDMI mux IC 
 The project uses the TS3DV642 IC, which is rated for and has been tested to support:
  - HDMI 2.0 compatibility
  - 4K at 60 Hz
-
-Note: The TS3DV642 is a FET-based switch, it is currently unknown whether the switch or PCB implementation may allow performance beyond the listed specifications.
 
 This project is sponsored by www.pcbway.com
 
