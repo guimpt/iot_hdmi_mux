@@ -172,9 +172,10 @@ UniqueId=ba263ba7-3cc4-4c9b-afc1-f96312a9707c
 Description=BASIC
 AllowFabrication=0
 ParameterCount=0
-VariationCount=2
+VariationCount=3
 Variation1=Designator=R6|UniqueId=\ZONJAOXU|Kind=1|AlternatePart=
 Variation2=Designator=R7|UniqueId=\SKONRKLM|Kind=1|AlternatePart=
+Variation3=Designator=R9|UniqueId=\RIOJKZHF|Kind=1|AlternatePart=
 ParamVariationCount=0
 
 [GeneratedDocument1]
@@ -182,20 +183,16 @@ DocumentPath=Project Outputs for iot_hdmi_mux\Design Rule Check - iot_hdmi_mux.h
 DItemRevisionGUID=
 
 [Parameter1]
-Name=
-Value=
+Name=Project_revision
+Value=v2.0
 
 [Parameter2]
-Name=Project_revision
-Value=v1.1
-
-[Parameter3]
 Name=Project
 Value=IOT
 
-[Parameter4]
+[Parameter3]
 Name=PCB_Revision
-Value=iot_hdmi_mux_v1.1
+Value=iot_hdmi_mux_v2.0
 
 [Configuration1]
 Name=Sources
@@ -240,6 +237,45 @@ DocumentReferenceClass1=DocumentReference
 OutputJobFileName1=Manufacturing_JLC.OutJob
 ContentTypeGUID=0D12F8DC-E60C-11DF-B822-12313F0024A2
 ConfigurationType=Assembly
+
+[Generic_SmartPDF]
+AutoOpenFile=-1
+AutoOpenOutJob=-1
+
+[Generic_SmartPDFSettings]
+ProjectMode=-1
+ZoomPrecision=50
+AddNetsInformation=-1
+AddNetPins=-1
+AddNetNetLabels=-1
+AddNetPorts=-1
+ShowComponentParameters=-1
+GlobalBookmarks=0
+ExportBOM=0
+TemplateFilename=
+TemplateStoreRelative=-1
+PCB_PrintColor=1
+SCH_PrintColor=0
+PrintQuality=-3
+SCH_ShowNoErc=-1
+SCH_ShowParameter=-1
+SCH_ShowProbes=-1
+SCH_ShowBlankets=-1
+SCH_NoERCSymbolsToShow="Thin Cross","Thick Cross","Small Cross",Checkbox,Triangle
+SCH_ShowNote=-1
+SCH_ShowNoteCollapsed=-1
+Wir_PrintColor=0
+Ldr_PrintColor=0
+Esd_PrintColor=0
+SCH_ExpandLogicalToPhysical=-1
+SCH_VariantName=BASIC
+SCH_ExpandComponentDesignators=-1
+SCH_ExpandNetlabels=0
+SCH_ExpandPorts=0
+SCH_ExpandSheetNumber=0
+SCH_ExpandDocumentNumber=0
+SCH_HasExpandLogicalToPhysicalSheets=-1
+SaveSettingsToOutJob=0
 
 [OutputGroup1]
 Name=Netlist Outputs
@@ -557,6 +593,22 @@ OutputDocumentPath1=
 OutputVariantName1=[No Variations]
 OutputDefault1=0
 PageOptions1=Record=PageOptions|CenterHorizontal=True|CenterVertical=True|PrintScale=1.00|XCorrection=1.00|YCorrection=1.00|PrintKind=1|BorderSize=5000000|LeftOffset=0|BottomOffset=0|Orientation=2|PaperLength=1000|PaperWidth=1000|Scale=100|PaperSource=7|PrintQuality=-3|MediaType=1|DitherType=10|PrintScaleMode=1|PaperKind=Letter|PaperIndex=1
+Configuration1_Name1=ColumnNameFormat
+Configuration1_Item1=CaptionAsName
+Configuration1_Name2=ForceUpdateSettings
+Configuration1_Item2=False
+Configuration1_Name3=General
+Configuration1_Item3=OpenExported=False|AddToProject=False|ReportBOMViolationsInMessages=False|ForceFit=False|NotFitted=False|Database=False|DatabasePriority=False|IncludePcbData=False|IncludeVaultData=True|IncludeCloudData=False|IncludeDocumentData=True|IncludeAlternatives=False|ShowExportOptions=True|TemplateFilename=|TemplateVaultGuid=|TemplateItemGuid=|TemplateRevisionGuid=|BatchMode=5|FormWidth=1200|FormHeight=710|SupplierProdQty=1|SupplierAutoQty=False|SupplierUseCachedPricing=False|SupplierCurrency=USD|SolutionsPerItem=1|SuppliersPerSolution=1|ViewType=0|BomSetName=
+Configuration1_Name4=GroupOrder
+Configuration1_Item4=
+Configuration1_Name5=VisibleOrder
+Configuration1_Item5=Line #=52|Comment=121|Description=100|Designator=121|Quantity=65|LCSC=73|Manufacturer 1=97|Manufacturer Part Number 1=161|Manufacturer Lifecycle 1=141|Supplier 1=110|Supplier Part Number 1=136|Supplier Unit Price 1=121|Supplier Subtotal 1=115
+Configuration1_Name6=VisibleOrder_Base
+Configuration1_Item6=Line #=52|Comment=121|Description=100|Designator=121|Quantity=65|LCSC=73|Manufacturer 1=97|Manufacturer Part Number 1=161|Manufacturer Lifecycle 1=141|Supplier 1=110|Supplier Part Number 1=136|Supplier Unit Price 1=121|Supplier Subtotal 1=115
+Configuration1_Name7=VisibleOrder_Consolidated
+Configuration1_Item7=Line #=100|Comment=100|Description=100|Designator=100|Quantity=100|Manufacturer 1=97|Manufacturer Part Number 1=161|Manufacturer Lifecycle 1=141|Supplier 1=110|Supplier Part Number 1=136|Supplier Unit Price 1=121|Supplier Subtotal 1=115
+Configuration1_Name8=VisibleOrder_Flat
+Configuration1_Item8=Line #=100|Comment=100|Description=100|Designator=100|Manufacturer 1=97|Manufacturer Part Number 1=161|Manufacturer Lifecycle 1=141|Supplier 1=110|Supplier Part Number 1=136|Supplier Unit Price 1=121|Supplier Subtotal 1=115
 OutputType2=BOM_ReportCompare
 OutputName2=BOM Compare
 OutputDocumentPath2=
@@ -600,6 +652,11 @@ OutputName9=Report Single Pin Nets
 OutputDocumentPath9=
 OutputVariantName9=[No Variations]
 OutputDefault9=0
+OutputType10=BOM_ReportManufacturing
+OutputName10=Manufacturing Data
+OutputDocumentPath10=
+OutputVariantName10=[No Variations]
+OutputDefault10=0
 
 [OutputGroup7]
 Name=Other Outputs
@@ -894,6 +951,8 @@ Type156=1
 Type157=1
 Type158=1
 Type159=1
+Type160=1
+Type161=1
 
 [Difference Levels]
 Type1=1
@@ -983,6 +1042,7 @@ Type84=1
 Type85=1
 Type86=1
 Type87=1
+Type88=1
 
 [Electrical Rules Check]
 Type1=1
@@ -1148,6 +1208,8 @@ Type160=0
 Type161=0
 Type162=1
 Type163=1
+Type164=1
+Type165=2
 
 [ERC Connection Matrix]
 L1=NNNNNNNNNNNWNNNWW
@@ -1190,10 +1252,16 @@ NetClassManualEnabled=1
 NetClassSeparateForBusSections=0
 
 [LibraryUpdateOptions]
-SelectedOnly=0
+SelectedOnly=1
 UpdateVariants=1
 UpdateToLatestRevision=1
 PartTypes=0
+ComponentLibIdentifierKind0=Library Name And Type
+ComponentLibraryIdentifier0=iot_hdmi_mux.SchLib
+ComponentDesignItemID0=ESP32-C3FH4
+ComponentSymbolReference0=ESP32-C3FH4
+ComponentUpdate0=1
+ComponentIsDeviceSheet0=0
 FullReplace=1
 UpdateDesignatorLock=1
 UpdatePartIDLock=1
@@ -1207,6 +1275,37 @@ RemoveParameters=0
 AddModels=1
 RemoveModels=1
 UpdateCurrentModels=1
+ParameterName0=Category
+ParameterUpdate0=1
+ParameterName1=Comment
+ParameterUpdate1=1
+ParameterName2=Component Kind
+ParameterUpdate2=1
+ParameterName3=Description
+ParameterUpdate3=1
+ParameterName4=LCSC
+ParameterUpdate4=1
+ParameterName5=Library Reference
+ParameterUpdate5=1
+ParameterName6=Manufacturer
+ParameterUpdate6=1
+ParameterName7=Manufacturer Part Number
+ParameterUpdate7=1
+ParameterName8=Pricing
+ParameterUpdate8=1
+ParameterName9=RoHS
+ParameterUpdate9=1
+ParameterName10=Stock
+ParameterUpdate10=1
+ParameterName11=Supplier
+ParameterUpdate11=1
+ParameterName12=Supplier Part Number
+ParameterUpdate12=1
+ModelTypeGroup0=PCBLIB
+ModelTypeUpdate0=1
+ModelType0=PCBLIB
+ModelName0=QFN50P500X500X90_HS-33N
+ModelUpdate0=1
 
 [DatabaseUpdateOptions]
 SelectedOnly=0
