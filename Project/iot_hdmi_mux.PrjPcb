@@ -63,7 +63,7 @@ Assembly=ASM-`ProjectName`-`VariantName`
 [Release]
 ReleaseTarget=2
 ReleaseFolderPath=[OutputPath]
-ReleaseZipPath=C:\Users\Guim\Documents\PROJECTES\Personal\iot_hdmi_mux\Project\Project Outputs for iot_hdmi_mux\release_v1.1.zip
+ReleaseZipPath=C:\Users\Guim\Documents\PROJECTES\Personal\iot_hdmi_mux\Project\Project Outputs for iot_hdmi_mux\release_v2.0.zip
 
 [Document1]
 DocumentPath=iot_hdmi_mux.SchDoc
@@ -172,10 +172,9 @@ UniqueId=ba263ba7-3cc4-4c9b-afc1-f96312a9707c
 Description=BASIC
 AllowFabrication=0
 ParameterCount=0
-VariationCount=3
+VariationCount=2
 Variation1=Designator=R6|UniqueId=\ZONJAOXU|Kind=1|AlternatePart=
 Variation2=Designator=R7|UniqueId=\SKONRKLM|Kind=1|AlternatePart=
-Variation3=Designator=R9|UniqueId=\RIOJKZHF|Kind=1|AlternatePart=
 ParamVariationCount=0
 
 [GeneratedDocument1]
@@ -183,16 +182,16 @@ DocumentPath=Project Outputs for iot_hdmi_mux\Design Rule Check - iot_hdmi_mux.h
 DItemRevisionGUID=
 
 [Parameter1]
-Name=Project_revision
-Value=v2.0
+Name=PCB_Revision
+Value=iot_hdmi_mux_v2.0
 
 [Parameter2]
 Name=Project
 Value=IOT
 
 [Parameter3]
-Name=PCB_Revision
-Value=iot_hdmi_mux_v2.0
+Name=Project_revision
+Value=v2.0
 
 [Configuration1]
 Name=Sources
