@@ -1,4 +1,4 @@
-[![Buy on Tindie](https://d2ss6ovg47m0r5.cloudfront.net/badges/tindie-mediums.png)](https://www.tindie.com/products/guimpt/iot-hdmi-switch-21/)
+[![Buy on Tindie](https://static.tindie.com/badges/tindie-mediums.png)](https://www.tindie.com/products/guimpt/iot-hdmi-switch-21/)
 # IoT HDMI Switch — WiFi-controlled, Home Assistant Native
 
 A 2-input, 1-output HDMI 2.0 switch (4K @ 60Hz) you control over WiFi.
