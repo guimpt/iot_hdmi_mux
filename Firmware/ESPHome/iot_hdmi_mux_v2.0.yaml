@@ -1,18 +1,21 @@
 substitutions:
-  # Which HDMI port of your TV the switch output is plugged into.
-  # Used as a fallback physical address (tv_port.0.0.0) until EDID auto-discovery
-  # reads the real one from the TV over the DDC tap. Most users never need to change it.
-  tv_port: "1"
   # Friendly names for the two HDMI inputs, shown in the source selector.
   source_a: "Input A"
   source_b: "Input B"
+  # CEC OSD names used to map bus devices to physical ports. Both sources read
+  # the display's EDID through the mux and adopt the SAME physical address, so
+  # ports can only be told apart by asking each device for its OSD name
+  # (case-insensitive substring match). The "CEC Sources" sensor shows the
+  # names devices actually report if these need adjusting.
+  source_a_osd: "Chromecast"
+  source_b_osd: "Kodi"
 
 esphome:
   name: hdmi-switch
   friendly_name: HDMI Switch
   project:
     name: "guimpt.iot_hdmi_mux"
-    version: "2.0.0"
+    version: "2.1.4"
   on_boot:
     priority: -100
     then:
@@ -24,17 +27,6 @@ esphome:
           gpio_reset_pin(GPIO_NUM_3);
           gpio_set_direction(GPIO_NUM_3, GPIO_MODE_OUTPUT);
           gpio_set_level(GPIO_NUM_8, 0);
-
-          // Seed physical addresses from tv_port fallback if not yet discovered (NVS empty).
-          if (id(pa_base) == 0) {
-            int port = ${tv_port};
-            uint16_t base = (uint16_t)(port << 12);
-            id(pa_base) = base;
-            id(pa_in_a) = base | 0x0100;
-            id(pa_in_b) = base | 0x0200;
-          }
-          id(cec).set_physical_address(id(pa_base));
-      # Give the TV/EDID a moment to settle, then read the real physical address.
       - delay: 3s
       - script.execute: discover_pa
 
@@ -44,6 +36,9 @@ esp32:
     type: esp-idf
 
 logger:
+
+debug:
+  update_interval: 30s
 
 api:
 
@@ -71,73 +66,209 @@ i2c:
   scan: false
 
 globals:
-  - id: pa_base
-    type: uint16_t
-    restore_value: true
-    initial_value: "0"
-  - id: pa_in_a
-    type: uint16_t
-    restore_value: true
-    initial_value: "0"
-  - id: pa_in_b
-    type: uint16_t
-    restore_value: true
-    initial_value: "0"
+  # Logical address -> port map, learned from OSD name replies.
+  # 0 = unknown, 1 = port A, 2 = port B.
+  - id: la_port
+    type: int[15]
+    initial_value: "{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}"
+  # Logical address whose <Active Source> is waiting on an OSD name reply.
+  - id: pending_sw_la
+    type: int
+    initial_value: "-1"
 
+# Local copy of Palakis/esphome-native-hdmi-cec with wrap-safe timing math in the
+# send path. Unpatched, unsigned time subtractions underflow into multi-minute
+# busy-waits and task watchdog resets during send retries (upstream issue #50).
 external_components:
-  - source: github://Palakis/esphome-native-hdmi-cec
+  - source:
+      type: local
+      path: components
 
-# TV-side CEC bus (GPIO4). On v2.0 the three port CEC lines are bridged with 0R links,
-# so a single bus is presented here.
-# physical_address is a compile-time fallback (tv_port.0.0.0); discover_pa overrides it
-# at runtime from the TV's EDID.
+# The sink (projector) has no CEC, so the mux claims the TV role itself:
+# logical address 0, physical address 0.0.0.0. Sources aim One Touch Play at
+# the "TV" and the mux routes video to whichever port announced itself.
+# This assumes a CEC-less display: a real CEC TV would collide with address 0.
 hdmi_cec:
   id: cec
   pin: GPIO4
-  address: 0x05
-  physical_address: 0x${tv_port}000
+  address: 0x00
+  physical_address: 0x0000
   osd_name: "HDMI Mux"
   promiscuous_mode: true
   monitor_mode: false
   on_message:
+    # Catch-all log. Any matching trigger suppresses the component's built-in
+    # replies, so every response a TV must give is implemented explicitly below.
+    # IMPORTANT: never call cec.send() directly from these handlers. Sends are
+    # blocking bit-banged transmits (2.4 ms/bit plus retries); the component
+    # processes every queued RX frame in one loop() pass, and stacking several
+    # sends in one pass starves the task watchdog (confirmed crash). All TX
+    # goes through cec_tx, a queued script that spaces sends across passes.
     - then:
         - lambda: |-
             auto frame = hdmi_cec::Frame(source, destination, data);
             id(cec_log).publish_state(frame.to_string(true));
-    - opcode: 0x86
+
+    # <Active Source>: a source took the screen; route the mux to its port.
+    # If we don't know the sender yet, ask its OSD name and switch on reply.
+    - opcode: 0x82
       then:
         - lambda: |-
-            uint16_t addr = (data[1] << 8) | data[2];
-            if (addr == id(pa_in_a))
+            if (source == 0 || source > 14) return;
+            int port = id(la_port)[source];
+            if (port == 1) {
               id(hdmi_switch_select).make_call().set_option("${source_a}").perform();
-            else if (addr == id(pa_in_b))
+            } else if (port == 2) {
               id(hdmi_switch_select).make_call().set_option("${source_b}").perform();
-    - opcode: 0x85
+            } else {
+              id(pending_sw_la) = source;
+              id(cec_tx).execute(source, 0x46, -1);
+            }
+
+    # <Report Physical Address>: a source came up; learn its port mapping early.
+    - opcode: 0x84
       then:
         - lambda: |-
-            uint16_t addr = 0;
-            if (id(hdmi_switch_select).state == "${source_a}") addr = id(pa_in_a);
-            else if (id(hdmi_switch_select).state == "${source_b}") addr = id(pa_in_b);
-            if (addr != 0) {
-              id(cec).send(id(cec).address(), 0xF,
-                std::vector<uint8_t>{0x82, (uint8_t)(addr >> 8), (uint8_t)(addr & 0xFF)});
+            if (source == 0 || source > 14) return;
+            if (id(la_port)[source] == 0) {
+              id(cec_tx).execute(source, 0x46, -1);
             }
+
+    # <Set OSD Name>: map the sender to a port by name.
+    - opcode: 0x47
+      then:
+        - lambda: |-
+            if (source == 0 || source > 14 || data.size() < 2) return;
+            std::string name(data.begin() + 1, data.end());
+            auto lower = [](std::string s) {
+              for (auto &c : s) {
+                if (c >= 'A' && c <= 'Z') c += 32;
+              }
+              return s;
+            };
+            std::string ln = lower(name);
+            int port = 0;
+            if (ln.find(lower("${source_a_osd}")) != std::string::npos) port = 1;
+            else if (ln.find(lower("${source_b_osd}")) != std::string::npos) port = 2;
+            id(la_port)[source] = port;
+
+            static std::string names[15];
+            names[source] = name;
+            std::string summary;
+            for (int i = 0; i < 15; i++) {
+              if (names[i].empty()) continue;
+              char prefix[4];
+              snprintf(prefix, sizeof(prefix), "%X=", i);
+              summary += prefix;
+              summary += names[i];
+              int p = id(la_port)[i];
+              summary += (p == 1) ? "->A " : (p == 2) ? "->B " : "->? ";
+            }
+            id(cec_devices).publish_state(summary);
+
+            if (id(pending_sw_la) == (int) source) {
+              id(pending_sw_la) = -1;
+              if (port == 1) {
+                id(hdmi_switch_select).make_call().set_option("${source_a}").perform();
+              } else if (port == 2) {
+                id(hdmi_switch_select).make_call().set_option("${source_b}").perform();
+              }
+            }
+
+    # <Standby>, directed or broadcast: display off.
     - opcode: 0x36
-      source: 0x0
+      destination: 0x0
+      then:
+        - select.set:
+            id: hdmi_switch_select
+            option: "Off"
+    - opcode: 0x36
       destination: 0xF
       then:
         - select.set:
             id: hdmi_switch_select
             option: "Off"
-    - opcode: 0x90
-      source: 0x0
+
+    # <Give Device Power Status>: report On unless the mux is Off.
+    # Sources poll this every few seconds, so it doubles as a free retry
+    # channel for OSD-name learning until the sender is mapped.
+    - opcode: 0x8F
+      destination: 0x0
       then:
         - lambda: |-
-            bool on = (data[1] == 0x00 || data[1] == 0x02);
-            id(tv_power).publish_state(on);
+            int status = (id(hdmi_switch_select).state == "Off") ? 0x01 : 0x00;
+            id(cec_tx).execute(source, 0x90, status);
+            if (source > 0 && source <= 14 && id(la_port)[source] == 0) {
+              id(cec_tx).execute(source, 0x46, -1);
+            }
+
+    # <Get CEC Version> -> <CEC Version> 1.3a.
+    - opcode: 0x9F
+      destination: 0x0
+      then:
+        - lambda: |-
+            id(cec_tx).execute(source, 0x9E, -1);
+
+    # <Give OSD Name> -> <Set OSD Name>.
+    - opcode: 0x46
+      destination: 0x0
+      then:
+        - lambda: |-
+            id(cec_tx).execute(source, 0x47, -1);
+
+    # <Give Physical Address> -> broadcast <Report Physical Address> 0.0.0.0, type TV.
+    - opcode: 0x83
+      destination: 0x0
+      then:
+        - lambda: |-
+            id(cec_tx).execute(0xF, 0x84, -1);
+
+    # Probes we don't support: Feature Abort so libCEC scans finish fast.
+    - opcode: 0x8C
+      destination: 0x0
+      then:
+        - lambda: |-
+            id(cec_tx).execute(source, 0x00, 0x8C);
+    - opcode: 0x91
+      destination: 0x0
+      then:
+        - lambda: |-
+            id(cec_tx).execute(source, 0x00, 0x91);
 
 script:
-  # Read the TV's EDID over the DDC tap and extract the HDMI physical address.
+  # Serialized CEC transmit queue. Each run resumes in its own loop() pass
+  # (the delay yields back to the scheduler), so at most one blocking send
+  # happens per pass no matter how fast queries arrive.
+  - id: cec_tx
+    mode: queued
+    max_runs: 12
+    parameters:
+      dest: int
+      op: int
+      arg: int
+    then:
+      - delay: 25ms
+      - lambda: |-
+          std::vector<uint8_t> payload;
+          uint8_t d = (uint8_t) dest;
+          switch (op) {
+            case 0x46: payload = {0x46}; break;
+            case 0x90: payload = {0x90, (uint8_t) arg}; break;
+            case 0x9E: payload = {0x9E, 0x04}; break;
+            case 0x47: {
+              payload = {0x47};
+              for (char c : std::string("HDMI Mux")) payload.push_back((uint8_t) c);
+              break;
+            }
+            case 0x84: payload = {0x84, 0x00, 0x00, 0x00}; d = 0xF; break;
+            case 0x00: payload = {0x00, (uint8_t) arg, 0x00}; break;
+            default: return;
+          }
+          id(cec).send(id(cec).address(), d, payload);
+
+  # Read the display's EDID over the DDC tap and publish the HDMI physical
+  # address it advertises. Diagnostic only: this is the address BOTH sources
+  # adopt, since the DDC lines pass straight through to them as well.
   - id: discover_pa
     then:
       - lambda: |-
@@ -181,29 +312,11 @@ script:
 
           char buf[12];
           snprintf(buf, sizeof(buf), "%X.%X.%X.%X", (pa >> 12) & 0xF, (pa >> 8) & 0xF, (pa >> 4) & 0xF, pa & 0xF);
-          id(cec_pa).publish_state(buf);  // always reflect a successful read, even if it matches the fallback
-
-          if (pa == id(pa_base)) {
-            ESP_LOGD("EDID", "Physical address unchanged (%s)", buf);
-            return;
+          std::string pa_str(buf);
+          if (id(cec_pa).state != pa_str) {
+            id(cec_pa).publish_state(pa_str);
+            ESP_LOGI("EDID", "Display advertises physical address %s", buf);
           }
-
-          // Derive child addresses by filling the highest-order free nibble.
-          uint16_t child;
-          if ((pa & 0x0FFF) == 0) child = 0x0100;
-          else if ((pa & 0x00FF) == 0) child = 0x0010;
-          else if ((pa & 0x000F) == 0) child = 0x0001;
-          else child = 0;
-
-          id(pa_base) = pa;
-          id(pa_in_a) = pa | (uint16_t)(1 * child);
-          id(pa_in_b) = pa | (uint16_t)(2 * child);
-          id(cec).set_physical_address(pa);
-
-          // Announce the (corrected) address to the bus.
-          id(cec).send(id(cec).address(), 0xF,
-            std::vector<uint8_t>{0x84, (uint8_t)(pa >> 8), (uint8_t)(pa & 0xFF), 0x05});
-          ESP_LOGI("EDID", "Discovered physical address %s", buf);
 
 interval:
   - interval: 30s
@@ -234,43 +347,14 @@ select:
             gpio_set_level(GPIO_NUM_3, 1);
           }
           ESP_LOGI("HDMI", "Switch set to %s", x.c_str());
-      - if:
-          condition:
-            lambda: 'return x == "${source_a}";'
-          then:
-            - lambda: |-
-                uint16_t a = id(pa_in_a);
-                id(cec).send(id(cec).address(), 0xF,
-                  std::vector<uint8_t>{0x82, (uint8_t)(a >> 8), (uint8_t)(a & 0xFF)});
-            - hdmi_cec.send:
-                destination: 0x0
-                data: [0x04]
-      - if:
-          condition:
-            lambda: 'return x == "${source_b}";'
-          then:
-            - lambda: |-
-                uint16_t b = id(pa_in_b);
-                id(cec).send(id(cec).address(), 0xF,
-                  std::vector<uint8_t>{0x82, (uint8_t)(b >> 8), (uint8_t)(b & 0xFF)});
-            - hdmi_cec.send:
-                destination: 0x0
-                data: [0x04]
 
 button:
   - platform: template
-    name: "TV Power On"
-    icon: "mdi:television"
-    on_press:
-      - hdmi_cec.send:
-          destination: 0x0
-          data: [0x04]
-  - platform: template
-    name: "TV Standby"
+    name: "Sources Standby"
     icon: "mdi:power-standby"
     on_press:
       - hdmi_cec.send:
-          destination: 0x0
+          destination: 0xF
           data: [0x36]
 
 text_sensor:
@@ -284,9 +368,11 @@ text_sensor:
     id: cec_pa
     icon: "mdi:identifier"
     entity_category: diagnostic
-
-binary_sensor:
   - platform: template
-    name: "TV Power"
-    id: tv_power
-    device_class: power
+    name: "CEC Sources"
+    id: cec_devices
+    icon: "mdi:video-input-hdmi"
+    entity_category: diagnostic
+  - platform: debug
+    reset_reason:
+      name: "Reset Reason"
