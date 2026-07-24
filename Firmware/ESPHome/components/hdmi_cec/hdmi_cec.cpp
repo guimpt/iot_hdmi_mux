@@ -5,6 +5,11 @@
 #include "cec_decoder.h"
 #endif
 
+#ifdef USE_ESP32
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#endif
+
 namespace esphome {
 namespace hdmi_cec {
 
@@ -17,6 +22,30 @@ static const uint32_t HIGH_BIT_MAX_US = 800;
 static const uint32_t TOTAL_BIT_US = 2400;
 static const uint32_t HIGH_BIT_US = 600;
 static const uint32_t LOW_BIT_US = 1500;
+static const uint32_t START_BIT_LOW_US = 3700;
+static const uint32_t START_BIT_TOTAL_US = 4500;
+// Longest low pulse a follower still decodes as the intended bit value. These
+// are the RECEIVER's decision points, not the tighter transmit tolerances: a
+// logical 1 flips once it reaches the 1.05 ms sample instant, a logical 0 only
+// once it is long enough to pass for a start bit. Overrunning by less than that
+// is out of spec but still decodes correctly, and aborting on it costs more
+// retries than it saves.
+static const uint32_t HIGH_BIT_MAX_LOW_US = 1000;
+static const uint32_t LOW_BIT_MAX_LOW_US = 3400;
+static const uint32_t START_BIT_MAX_LOW_US = 4200;
+// "Safe sample period" for reading the bus back during a transmitted logical 1.
+// The end is stretched past the spec's 1.25 ms so that a late release still
+// leaves a usable window: whoever answers holds the line down until 1.5 ms, and
+// the reading latches, so a wider window can only add evidence.
+static const uint32_t SAMPLE_START_US = 850;
+static const uint32_t SAMPLE_END_US = 1400;
+static const uint32_t LEGACY_SAMPLE_US = 1050;
+static const uint32_t START_SAMPLE_START_US = 4000;
+static const uint32_t START_SAMPLE_END_US = 4400;
+// An acknowledging follower keeps the line down for a full logical 0.
+static const uint32_t ACK_HOLD_US = 1500;
+// Let the line rise through the bus capacitance before believing a read.
+static const uint32_t RISE_SETTLE_US = 250;
 // arbitration and retransmission
 static const size_t MAX_ATTEMPTS = 5;
 // Yield interval for bus-free wait loop: break long waits into chunks of this
@@ -71,8 +100,57 @@ inline void IRAM_ATTR HDMICEC::set_pin_output_low() {
   pin_->digital_write(false);
 }
 
+// Busy-wait until offset_us after start_us. The signed comparison is both
+// rollover-safe and returns immediately when the instant already passed, so a
+// preemption can never turn into a multi-minute spin (upstream issue #50).
+static inline void busy_wait_until(uint32_t start_us, uint32_t offset_us) {
+  while ((int32_t) (micros() - (start_us + offset_us)) < 0) {
+  }
+}
+
+// Raises the calling task's priority for the duration of one bit-banged frame.
+// The ESPHome main task runs at priority 1, so on the single-core C3 the WiFi
+// stack preempts it mid-bit and stretches low pulses past the point where the
+// follower decodes the wrong value: that is why transmits fail while receive
+// (interrupt driven) stays reliable. Measured on a live bus, 200 frames each:
+// priority 1 and priority 19 both leave ~6% of frames unacknowledged with low
+// pulses overrunning by up to 954 us, while 24 (above the WiFi task at 23)
+// gives 0 retries and a worst-case overrun of 13 us. Anything at or below the
+// WiFi task's priority is not worth enabling.
+class PriorityBoost {
+ public:
+  explicit PriorityBoost(uint8_t target) {
+#ifdef USE_ESP32
+    if (target == 0) {
+      return;
+    }
+    TaskHandle_t task = xTaskGetCurrentTaskHandle();
+    UBaseType_t current = uxTaskPriorityGet(task);
+    if (target <= current) {
+      return;
+    }
+    task_ = task;
+    previous_ = current;
+    vTaskPrioritySet(task_, target);
+#endif
+  }
+  ~PriorityBoost() {
+#ifdef USE_ESP32
+    if (task_ != nullptr) {
+      vTaskPrioritySet(task_, previous_);
+    }
+#endif
+  }
+
+ private:
+#ifdef USE_ESP32
+  TaskHandle_t task_{nullptr};
+  UBaseType_t previous_{0};
+#endif
+};
+
 void HDMICEC::setup() {
-  this->pin_->setup();  
+  this->pin_->setup();
   isr_pin_ = pin_->to_isr();
   frames_queue_.reset();
   pin_->attach_interrupt(HDMICEC::gpio_intr_, this, gpio::INTERRUPT_ANY_EDGE);
@@ -85,6 +163,9 @@ void HDMICEC::dump_config() {
   ESP_LOGCONFIG(TAG, "  address: %x", address_);
   ESP_LOGCONFIG(TAG, "  promiscuous mode: %s", (promiscuous_mode_ ? "yes" : "no"));
   ESP_LOGCONFIG(TAG, "  monitor mode: %s", (monitor_mode_ ? "yes" : "no"));
+  ESP_LOGCONFIG(TAG, "  tx priority boost: %u", tx_priority_);
+  ESP_LOGCONFIG(TAG, "  tx window sampling: %s", (tx_window_sampling_ ? "yes" : "no"));
+  ESP_LOGCONFIG(TAG, "  tx strict timing: %s", (tx_strict_timing_ ? "yes" : "no"));
 }
 
 void HDMICEC::loop() {
@@ -227,14 +308,26 @@ void HDMICEC::try_builtin_handler_(uint8_t source, uint8_t destination, const st
   }
 }
 
-bool HDMICEC::send(uint8_t source, uint8_t destination, const std::vector<uint8_t> &data_bytes) {
+bool HDMICEC::send(uint8_t source, uint8_t destination, const std::vector<uint8_t> &data_bytes, bool count_stats) {
   if (monitor_mode_) return false;
 
   bool is_broadcast = (destination == 0xF);
 
+  // Occupancy probes (count_stats=false) must not pollute the reliability
+  // counters: polling a free address deliberately exhausts every retry with
+  // no ack, which would read as a failing transmitter on a perfect one.
+  // Snapshot the whole stats block and restore it on every exit path, so a
+  // probe (including its deep timing/sample counters) leaves stats untouched.
+  const CecTxStats stats_snapshot = tx_stats_;
+  auto finish = [&](bool result) {
+    if (!count_stats) tx_stats_ = stats_snapshot;
+    return result;
+  };
+
   // prepare the bytes to send
   Frame frame(source, destination, data_bytes);
   ESP_LOGD(TAG, "[sending] %s", frame.to_string().c_str());
+  tx_stats_.frames++;
 
   {
     LockGuard send_lock(send_mutex_);
@@ -267,7 +360,9 @@ bool HDMICEC::send(uint8_t source, uint8_t destination, const std::vector<uint8_
         // Check total timeout
         if ((micros() - send_start_us) > SEND_TIMEOUT_US) {
           ESP_LOGW(TAG, "HDMICEC::send(): total timeout reached (2s), aborting");
-          return false;
+          tx_stats_.bus_timeouts++;
+          tx_stats_.failed++;
+          return finish(false);
         }
         // Check per-attempt timeout (bus constantly busy)
         if ((micros() - attempt_start_us) > ATTEMPT_TIMEOUT_US) {
@@ -287,6 +382,7 @@ bool HDMICEC::send(uint8_t source, uint8_t destination, const std::vector<uint8_
 
       // Skip frame send if we broke out due to per-attempt timeout
       if ((micros() - attempt_start_us) > ATTEMPT_TIMEOUT_US) {
+        tx_stats_.bus_timeouts++;
         free_bit_periods = 3;
         yield();
         continue;
@@ -294,13 +390,23 @@ bool HDMICEC::send(uint8_t source, uint8_t destination, const std::vector<uint8_
 
       ESP_LOGV(TAG, "HDMICEC::send(): bus available, sending frame...");
 
+      tx_stats_.attempts++;
       auto result = send_frame_(frame, is_broadcast);
       if (result == SendResult::Success) {
         ESP_LOGD(TAG, "frame sent and acknowledged");
-        return true;
+        tx_stats_.ok++;
+        return finish(true);
       }
-      ESP_LOGI(TAG, "HDMICEC::send(): frame not sent: %s",
-               ((result == SendResult::BusCollision) ? "Bus Collision" : "No Ack received"));
+      const char *reason = "No Ack received";
+      if (result == SendResult::BusCollision) {
+        tx_stats_.collisions++;
+        reason = "Bus Collision";
+      } else if (result == SendResult::TimingFault) {
+        reason = "Bit Timing Fault";
+      } else {
+        tx_stats_.no_ack++;
+      }
+      ESP_LOGI(TAG, "HDMICEC::send(): frame not sent: %s", reason);
       // attempt retransmission with smaller free time gap
       free_bit_periods = 3;
       yield();
@@ -308,120 +414,225 @@ bool HDMICEC::send(uint8_t source, uint8_t destination, const std::vector<uint8_
   }
 
   ESP_LOGE(TAG, "HDMICEC::send(): send failed after %d attempts", MAX_ATTEMPTS);
-  return false;
+  tx_stats_.failed++;
+  return finish(false);
 }
 
 SendResult HDMICEC::send_frame_(const Frame &frame, bool is_broadcast) {
   pin_->detach_interrupt();  // do NOT listen for pin changes while sending
+  PriorityBoost boost(tx_priority_);
   auto result = SendResult::Success;
 
-  bool success = send_start_bit_();
+  BitSample sample = send_start_bit_();
+  if (sample == BitSample::Fault) {
+    result = SendResult::TimingFault;
+  } else if (sample == BitSample::Low) {
+    result = SendResult::BusCollision;
+  }
 
   // for each byte of the frame:
-  for (auto it = frame.begin(); it != frame.end(); ++it) {
+  for (auto it = frame.begin(); (result == SendResult::Success) && it != frame.end(); ++it) {
     uint8_t current_byte = *it;
 
     // 1. send the current byte
-    for (int8_t i = 7; (i >= 0) && success; i--) {
+    for (int8_t i = 7; i >= 0; i--) {
       bool bit_value = ((current_byte >> i) & 0b1);
       if ((it == frame.begin()) && i >= 4 && bit_value) {
         // my initiator address bit is 1: test for bus collision
         // see the specification in the HDMI standard, section "CEC Arbitration"
-        success = send_high_and_test_();
-      } else {
-        send_bit_(bit_value);
+        sample = send_high_and_test_();
+        if (sample == BitSample::Fault) {
+          result = SendResult::TimingFault;
+          break;
+        }
+        if (sample == BitSample::Low) {
+          // immediatly stop sending bits due to bus collision:
+          // the other concurrent initiator with lower address might not have detected the conflict
+          result = SendResult::BusCollision;
+          break;
+        }
+      } else if (!send_bit_(bit_value)) {
+        result = SendResult::TimingFault;
+        break;
       }
     }
-
-    if (!success) {
-      // immediatly stop sending bits due to bus collision:
-      // the other concurrent initiator with lower address might not have detected the conflict
-      result = SendResult::BusCollision;
+    if (result != SendResult::Success) {
       break;
     }
 
     // 2. send EOM bit (logic 1 if this is the last byte of the frame)
     bool is_eom = (it == (frame.end() - 1));
-    send_bit_(is_eom);
+    if (!send_bit_(is_eom)) {
+      result = SendResult::TimingFault;
+      break;
+    }
 
     // 3. send ack bit and test bit value from destination(s)
-    bool value = send_high_and_test_();
-    success = (value == is_broadcast);  // 'no broadcast' should give a 'false' signal value as 'ack'
-    if (!success) {
+    sample = send_high_and_test_();
+    if (sample == BitSample::Fault) {
+      result = SendResult::TimingFault;
+      break;
+    }
+    // a follower acknowledges by holding the line low; on a broadcast a low
+    // instead means somebody rejected the frame
+    bool acked = (sample == BitSample::Low);
+    if (acked == is_broadcast) {
       result = SendResult::NoAck;
       break;
     }
   }
   // capture last bus busy time also for bus writes (with interrupts off)
   last_sent_us_ = micros();
+  // the line is idle high again: keep the edge detector in step, otherwise the
+  // next falling edge is discarded as spurious
+  last_level_ = true;
   pin_->attach_interrupt(HDMICEC::gpio_intr_, this, gpio::INTERRUPT_ANY_EDGE);
   return result;
 }
 
-bool HDMICEC::send_start_bit_() {
-  // 1. pull low for 3700 us
-  set_pin_output_low();
-  delay_microseconds_safe(3700);
+// Reads the bus back across a window instead of at a single instant. A single
+// read that preemption pushes past the follower's release reads high and looks
+// like a missing acknowledgement, which is the dominant cause of spurious
+// retries on a bit-banged transmitter sharing a core with the WiFi stack.
+void HDMICEC::sample_line_(uint32_t start_us, uint32_t release_us, uint32_t window_start_us, uint32_t window_end_us,
+                           uint32_t legacy_us, LineSample *out) {
+  *out = LineSample{false, false, false, false};
 
-  // 2. pull high for 800 us
-  set_pin_input_high();
-  delay_microseconds_safe(400);
+  uint32_t window_start = start_us + window_start_us;
+  if ((int32_t) (window_start - (release_us + RISE_SETTLE_US)) < 0) {
+    window_start = release_us + RISE_SETTLE_US;
+  }
+  const uint32_t window_end = start_us + window_end_us;
+  const uint32_t legacy_at = start_us + legacy_us;
 
-  // check half-way the 'high' interval for no collision
-  bool value = pin_->digital_read();
-
-  // check at end of 'high' interval for no collision
-  delay_microseconds_safe(400);
-  value &= pin_->digital_read();
-
-  // total duration of start bit: 4500 us
-  // No other initiator tried to 'start' concurrently by pulling the pin low?
-  bool success = (value == true);
-  return success;
+  while ((int32_t) (micros() - window_end) < 0) {
+    const uint32_t now = micros();
+    if ((int32_t) (now - window_start) < 0) {
+      continue;
+    }
+    const bool low = !pin_->digital_read();
+    out->sampled = true;
+    // confirm a low before believing it, so a glitch cannot fake an ack
+    if (low && !pin_->digital_read()) {
+      out->low_seen = true;
+    }
+    if (!out->legacy_valid && (int32_t) (now - legacy_at) >= 0) {
+      out->legacy_valid = true;
+      out->legacy_low = low;
+    }
+  }
 }
 
-void HDMICEC::send_bit_(bool bit_value) {
+BitSample HDMICEC::send_start_bit_() {
+  const uint32_t start_us = micros();
+  set_pin_output_low();
+  busy_wait_until(start_us, START_BIT_LOW_US);
+  set_pin_input_high();
+  const uint32_t release_us = micros();
+  const uint32_t low_us = release_us - start_us;
+
+  BitSample result = BitSample::High;
+  if (low_us > START_BIT_MAX_LOW_US) {
+    tx_stats_.timing_faults++;
+    if (tx_strict_timing_) {
+      result = BitSample::Fault;
+    }
+  } else {
+    // no other initiator may pull the line down during the high half
+    LineSample sample;
+    sample_line_(start_us, release_us, START_SAMPLE_START_US, START_SAMPLE_END_US, START_SAMPLE_START_US, &sample);
+    if (sample.low_seen) {
+      result = BitSample::Low;
+    }
+  }
+
+  // total duration of start bit: 4500 us
+  busy_wait_until(start_us, START_BIT_TOTAL_US);
+  return result;
+}
+
+// Returns false when our own low pulse overran the spec tolerance: the follower
+// will have decoded the wrong bit value, so there is no point transmitting the
+// rest of a frame that can only be dropped.
+bool HDMICEC::send_bit_(bool bit_value) {
   // total bit duration:
   // logic 1: pull low for 600 us, then pull high for 1800 us
   // logic 0: pull low for 1500 us, then pull high for 900 us
 
   const uint32_t low_duration_us = (bit_value ? HIGH_BIT_US : LOW_BIT_US);
-  const uint32_t high_duration_us = (TOTAL_BIT_US - low_duration_us);
+  const uint32_t max_low_us = (bit_value ? HIGH_BIT_MAX_LOW_US : LOW_BIT_MAX_LOW_US);
 
+  const uint32_t start_us = micros();
   set_pin_output_low();
-  delay_microseconds_safe(low_duration_us);
+  busy_wait_until(start_us, low_duration_us);
   set_pin_input_high();
-  delay_microseconds_safe(high_duration_us);
+  const uint32_t low_us = micros() - start_us;
+
+  busy_wait_until(start_us, TOTAL_BIT_US);
+
+  if (low_us > low_duration_us) {
+    const uint32_t overrun_us = low_us - low_duration_us;
+    if (overrun_us > tx_stats_.max_overrun_us) {
+      tx_stats_.max_overrun_us = overrun_us;
+    }
+  }
+  if (low_us > max_low_us) {
+    tx_stats_.timing_faults++;
+    return !tx_strict_timing_;
+  }
+  return true;
 }
 
-bool HDMICEC::send_high_and_test_() {
-  uint32_t start_us = micros();
+BitSample HDMICEC::send_high_and_test_() {
+  const uint32_t start_us = micros();
 
   // send a Logical 1
   set_pin_output_low();
-  delay_microseconds_safe(HIGH_BIT_US);
+  busy_wait_until(start_us, HIGH_BIT_US);
   set_pin_input_high();
+  const uint32_t release_us = micros();
+  const uint32_t low_us = release_us - start_us;
 
-  // ...then wait up to the middle of the "Safe sample period" (CEC spec -> Signaling and Bit Timing -> Figure 5)
-  // Clamp against elapsed time: if an interrupt or preemption already pushed us past the
-  // target instant, the unsigned subtraction would underflow to a ~71 minute busy-wait
-  // and trip the task watchdog.
-  static const uint32_t SAFE_SAMPLE_US = 1050;
-  uint32_t elapsed_us = micros() - start_us;
-  if (elapsed_us < SAFE_SAMPLE_US) {
-    delay_microseconds_safe(SAFE_SAMPLE_US - elapsed_us);
+  tx_stats_.samples++;
+  if (low_us > HIGH_BIT_US) {
+    const uint32_t overrun_us = low_us - HIGH_BIT_US;
+    if (overrun_us > tx_stats_.max_overrun_us) {
+      tx_stats_.max_overrun_us = overrun_us;
+    }
   }
-  bool value = pin_->digital_read();
+  if (low_us > HIGH_BIT_MAX_LOW_US) {
+    // we were still driving the line at the sample point: whatever we read back
+    // would be our own pulse, not the follower's answer
+    tx_stats_.timing_faults++;
+    if (tx_strict_timing_) {
+      busy_wait_until(start_us, TOTAL_BIT_US);
+      return BitSample::Fault;
+    }
+  }
+
+  LineSample sample;
+  sample_line_(start_us, release_us, SAMPLE_START_US, SAMPLE_END_US, LEGACY_SAMPLE_US, &sample);
+
+  BitSample result;
+  if (!sample.sampled) {
+    // preempted clean through the safe sample period: an acknowledging follower
+    // still holds the line down for a full logical 0, so try one late read
+    tx_stats_.windows_missed++;
+    const bool late_low = (((int32_t) (micros() - (start_us + ACK_HOLD_US)) < 0) && !pin_->digital_read());
+    result = late_low ? BitSample::Low : BitSample::Fault;
+  } else if (tx_window_sampling_) {
+    result = sample.low_seen ? BitSample::Low : BitSample::High;
+  } else {
+    result = (sample.legacy_valid && sample.legacy_low) ? BitSample::Low : BitSample::High;
+  }
+
+  if (sample.low_seen && sample.legacy_valid && !sample.legacy_low) {
+    tx_stats_.window_rescues++;
+  }
 
   // sleep for the rest of the bit period
-  elapsed_us = micros() - start_us;
-  if (elapsed_us < TOTAL_BIT_US) {
-    delay_microseconds_safe(TOTAL_BIT_US - elapsed_us);
-  }
-
-  // If a 'high' value was read, the 'low' pulse was short, not lengthened by another driver.
-  // Such short pulse represents a 'high' bit.
-  return value;
+  busy_wait_until(start_us, TOTAL_BIT_US);
+  return result;
 }
 
 void IRAM_ATTR HDMICEC::gpio_intr_(HDMICEC *self) {
@@ -467,14 +678,14 @@ void IRAM_ATTR HDMICEC::gpio_intr_(HDMICEC *self) {
   }
 
   bool value = (pulse_duration >= HIGH_BIT_MIN_US && pulse_duration <= HIGH_BIT_MAX_US);
-  
+
   switch (self->receiver_state_) {
     case ReceiverState::ReceivingByte: {
       // write bit to the current byte
       self->recv_byte_buffer_ = (self->recv_byte_buffer_ << 1) | (value & 0b1);
 
       self->recv_bit_counter_++;
-      if (self->recv_bit_counter_ >= 8) { 
+      if (self->recv_bit_counter_ >= 8) {
         // if we reached eight bits, push the current byte to the frame buffer
         if (self->frame_receive_) {
           self->frame_receive_->push_back(self->recv_byte_buffer_);

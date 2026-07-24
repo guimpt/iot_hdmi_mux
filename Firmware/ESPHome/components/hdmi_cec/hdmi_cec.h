@@ -35,6 +35,37 @@ enum class SendResult : uint8_t {
   Success = 0,
   BusCollision = 1,
   NoAck = 2,
+  TimingFault = 3,
+};
+
+// Result of reading the bus back while transmitting a logical 1.
+enum class BitSample : uint8_t {
+  High = 0,   // nobody else is driving: no collision / no acknowledgement
+  Low = 1,    // another device is holding the line down
+  Fault = 2,  // our own bit timing was blown, the reading means nothing
+};
+
+// One read-back window of the bus during a transmitted logical 1.
+struct LineSample {
+  bool low_seen;      // the line was held low somewhere inside the window
+  bool sampled;       // we got at least one read inside the window
+  bool legacy_low;    // reading at the single instant the old code used
+  bool legacy_valid;
+};
+
+struct CecTxStats {
+  uint32_t frames;          // send() calls
+  uint32_t ok;              // frames acknowledged
+  uint32_t failed;          // frames given up on
+  uint32_t attempts;        // individual frame transmissions
+  uint32_t no_ack;
+  uint32_t collisions;
+  uint32_t bus_timeouts;    // bus never went free in time
+  uint32_t samples;         // read-back bits (acknowledgement + arbitration)
+  uint32_t timing_faults;   // bits whose low pulse overran the spec tolerance
+  uint32_t windows_missed;  // preempted clean through the safe sample period
+  uint32_t window_rescues;  // window saw the ack, the old single read would not have
+  uint32_t max_overrun_us;  // worst low-pulse overrun seen
 };
 
 /*
@@ -98,7 +129,21 @@ public:
   void set_osd_name_bytes(const std::vector<uint8_t> &osd_name_bytes) { osd_name_bytes_ = osd_name_bytes; }
   void add_message_trigger(MessageTrigger *trigger) { message_triggers_.push_back(trigger); }
 
-  bool send(uint8_t source, uint8_t destination, const std::vector<uint8_t> &data_bytes);
+  // count_stats=false skips the reliability counters, for occupancy probes
+  // whose deliberate no-ack retries would otherwise read as a failing
+  // transmitter and corrupt the TX diagnostics.
+  bool send(uint8_t source, uint8_t destination, const std::vector<uint8_t> &data_bytes, bool count_stats = true);
+
+  // Transmit hardening. Runtime-switchable so both strategies can be measured
+  // against each other on a live bus without reflashing.
+  void set_tx_priority(uint8_t priority) { tx_priority_ = priority; }
+  uint8_t tx_priority() const { return tx_priority_; }
+  void set_tx_window_sampling(bool enabled) { tx_window_sampling_ = enabled; }
+  bool tx_window_sampling() const { return tx_window_sampling_; }
+  void set_tx_strict_timing(bool enabled) { tx_strict_timing_ = enabled; }
+  bool tx_strict_timing() const { return tx_strict_timing_; }
+  const CecTxStats &tx_stats() const { return tx_stats_; }
+  void reset_tx_stats() { tx_stats_ = CecTxStats{}; }
 
   // Component overrides
   float get_setup_priority() { return esphome::setup_priority::HARDWARE; }
@@ -111,9 +156,11 @@ protected:
   static void reset_state_variables_(HDMICEC *self);
   void try_builtin_handler_(uint8_t source, uint8_t destination, const std::vector<uint8_t> &data);
   SendResult send_frame_(const Frame &frame, bool is_broadcast);
-  bool send_start_bit_();
-  void send_bit_(bool bit_value);
-  bool send_high_and_test_();
+  BitSample send_start_bit_();
+  bool send_bit_(bool bit_value);
+  BitSample send_high_and_test_();
+  void sample_line_(uint32_t start_us, uint32_t release_us, uint32_t window_start_us, uint32_t window_end_us,
+                    uint32_t legacy_us, LineSample *out);
   void set_pin_input_high();
   void set_pin_output_low();
 
@@ -137,6 +184,11 @@ protected:
   FrameRingBuffer<MAX_FRAMES_QUEUED> frames_queue_;
   bool recv_ack_queued_ = false;
   Mutex send_mutex_;
+
+  uint8_t tx_priority_ = 24;
+  bool tx_window_sampling_ = true;
+  bool tx_strict_timing_ = true;
+  CecTxStats tx_stats_{};
 };
 
 class MessageTrigger : public Trigger<uint8_t, uint8_t, std::vector<uint8_t>> {
