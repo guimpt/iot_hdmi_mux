@@ -1,0 +1,15 @@
+{
+  "name": "HDMI Mux",
+  "version": "2.10.4",
+  "home_assistant_domain": "esphome",
+  "new_install_prompt_erase": false,
+  "builds": [
+    {
+      "chipFamily": "ESP32-C3",
+      "ota": {
+        "md5": "41c6324fb679d0b811795fd61f63b835",
+        "path": "firmware.ota.bin"
+      }
+    }
+  ]
+}
