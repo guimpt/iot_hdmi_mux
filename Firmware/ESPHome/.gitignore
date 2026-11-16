@@ -1,0 +1,7 @@
+# Local ESPHome compile-test environment
+.venv/
+.esphome/
+secrets.yaml
+compile.log
+__pycache__/
+release/
