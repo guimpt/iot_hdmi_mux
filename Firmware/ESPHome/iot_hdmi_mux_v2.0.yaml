@@ -19,7 +19,7 @@ esphome:
   friendly_name: HDMI Switch
   project:
     name: "guimpt.iot_hdmi_mux"
-    version: "2.12.1"
+    version: "2.12.2"
   on_boot:
     - priority: -100
       then:
