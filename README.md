@@ -7,6 +7,9 @@ Runs ESPHome natively. Shows up in Home Assistant as a select entity with no cus
 Built on an ESP32-C3 + Texas Instruments TS3DV642 FET switch.
 Pre-assembled units available on [Tindie](https://www.tindie.com/products/guimpt/iot-hdmi-switch-21/).
 
+**[Setup guide and owner's manual](Firmware/ESPHome/README.md)**: first-run WiFi, adopting
+it in Home Assistant, the entity reference and CEC control.
+
 ![Electronics render](https://github.com/guimpt/iot_hdmi_mux/blob/main/doc/render3.jpg)
 
 ## Supported HDMI Features

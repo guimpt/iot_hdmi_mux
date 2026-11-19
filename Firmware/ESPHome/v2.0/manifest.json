@@ -1,14 +1,16 @@
 {
   "name": "HDMI Mux",
-  "version": "2.10.4",
+  "version": "2.12.2",
   "home_assistant_domain": "esphome",
   "new_install_prompt_erase": false,
   "builds": [
     {
       "chipFamily": "ESP32-C3",
       "ota": {
-        "md5": "41c6324fb679d0b811795fd61f63b835",
-        "path": "firmware.ota.bin"
+        "md5": "0db22688ad706f4708afa47dacd158c0",
+        "path": "firmware.ota.bin",
+        "release_url": "https://github.com/guimpt/iot_hdmi_mux/releases",
+        "summary": "HDMI-CEC: TV On, All Standby, Sources Standby, Request Active Source; no reboot without Home Assistant; input survives power cuts; unique hostname per unit"
       }
     }
   ]

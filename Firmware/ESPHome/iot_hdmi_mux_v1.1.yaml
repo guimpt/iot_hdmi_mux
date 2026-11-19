@@ -1,0 +1,74 @@
+substitutions:
+  # Friendly names for the two HDMI inputs, shown in the source selector.
+  source_a: "Input A"
+  source_b: "Input B"
+
+# IoT HDMI Mux v1.1: plain TS3DV642 pass-through switch, no CEC and no DDC tap.
+# Hardware has no CEC bus or EDID EEPROM access, so this build only drives the
+# mux control pins (EN=GPIO8, SEL1=GPIO2, SEL2=GPIO3). For CEC/EDID use the v2.0 build.
+esphome:
+  name: hdmi-switch
+  friendly_name: HDMI Switch
+  project:
+    name: "guimpt.iot_hdmi_mux"
+    version: "1.1.0"
+  on_boot:
+    priority: -100
+    then:
+      - lambda: |-
+          gpio_reset_pin(GPIO_NUM_8);
+          gpio_set_direction(GPIO_NUM_8, GPIO_MODE_OUTPUT);
+          gpio_reset_pin(GPIO_NUM_2);
+          gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
+          gpio_reset_pin(GPIO_NUM_3);
+          gpio_set_direction(GPIO_NUM_3, GPIO_MODE_OUTPUT);
+          gpio_set_level(GPIO_NUM_8, 0);
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+
+logger:
+
+api:
+
+ota:
+  platform: esphome
+
+web_server:
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  ap:
+    ssid: "Hdmi-Switch Fallback Hotspot"
+    password: "HDMI_SWITCH"
+
+captive_portal:
+
+select:
+  - platform: template
+    name: "HDMI Switch"
+    id: hdmi_switch_select
+    icon: "mdi:hdmi-port"
+    optimistic: true
+    options:
+      - "Off"
+      - "${source_a}"
+      - "${source_b}"
+    set_action:
+      - lambda: |-
+          if (x == "Off") {
+            gpio_set_level(GPIO_NUM_8, 0);
+          } else if (x == "${source_a}") {
+            gpio_set_level(GPIO_NUM_8, 1);
+            gpio_set_level(GPIO_NUM_2, 1);
+            gpio_set_level(GPIO_NUM_3, 0);
+          } else if (x == "${source_b}") {
+            gpio_set_level(GPIO_NUM_8, 1);
+            gpio_set_level(GPIO_NUM_2, 1);
+            gpio_set_level(GPIO_NUM_3, 1);
+          }
+          ESP_LOGI("HDMI", "Switch set to %s", x.c_str());

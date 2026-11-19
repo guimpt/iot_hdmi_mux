@@ -1,0 +1,1079 @@
+substitutions:
+  # Friendly names for the two HDMI inputs, shown in the source selector.
+  source_a: "Input A"
+  source_b: "Input B"
+  # Name the mux reports on the CEC bus.
+  osd_name: "HDMI Mux"
+  # OTA update channel for this hardware revision. Raw file served from the repo;
+  # firmware.ota.bin must sit next to manifest.json (the manifest path is relative).
+  update_manifest: "https://raw.githubusercontent.com/guimpt/iot_hdmi_mux/main/Firmware/ESPHome/v2.0/manifest.json"
+
+# Transmit bench harness (benchmark, TX counters, timing knobs). Not needed to
+# run the device: the settings it tunes are already the component defaults.
+# See cec_tx_reliability.md.
+# packages:
+#   bench: !include cec_bench.yaml
+
+esphome:
+  name: hdmi-switch
+  friendly_name: HDMI Switch
+  project:
+    name: "guimpt.iot_hdmi_mux"
+    version: "2.12.2"
+  on_boot:
+    - priority: -100
+      then:
+        - lambda: |-
+            gpio_reset_pin(GPIO_NUM_8);
+            gpio_set_direction(GPIO_NUM_8, GPIO_MODE_OUTPUT);
+            gpio_reset_pin(GPIO_NUM_2);
+            gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
+            gpio_reset_pin(GPIO_NUM_3);
+            gpio_set_direction(GPIO_NUM_3, GPIO_MODE_OUTPUT);
+        # Drive the mux to the restored selection. The template select restores
+        # its state during its own setup, before this priority -100 block
+        # configures the pins above, so the GPIOs must be driven here to match
+        # (B7). First boot has no stored value and defaults to "Off" (EN low).
+        - select.set:
+            id: hdmi_switch_select
+            option: !lambda "return id(hdmi_switch_select).current_option().str();"
+        # Re-apply the persisted Learn-button bindings into the runtime map,
+        # then reflect them in the diagnostics. The Learn Status sensor is not
+        # persisted and the Sources summary is only rebuilt on an incoming
+        # name, so without this a reboot reads as "nothing learned" even though
+        # the bindings survived and auto-switch already works from them.
+        - lambda: |-
+            if (id(learned_la_a) >= 1 && id(learned_la_a) <= 14) id(la_port)[id(learned_la_a)] = 1;
+            if (id(learned_la_b) >= 1 && id(learned_la_b) <= 14) id(la_port)[id(learned_la_b)] = 2;
+            int a = id(learned_la_a), b = id(learned_la_b);
+            if (a >= 1 || b >= 1) {
+              std::string s = "Restored:";
+              char t[16];
+              if (a >= 1) { snprintf(t, sizeof(t), " A=LA %X", a); s += t; }
+              if (b >= 1) { snprintf(t, sizeof(t), " B=LA %X", b); s += t; }
+              id(cec_learn_status).publish_state(s);
+            } else {
+              id(cec_learn_status).publish_state("No ports learned yet");
+            }
+        - script.execute: {id: cec_devices_publish, la: -1, name: ""}
+        - delay: 3s
+        # DDC first: the role probe needs our physical address to be known, so
+        # that entering the source role can claim the address the display's EDID
+        # advertises instead of 0.0.0.0 (which belongs to the TV).
+        - script.execute: discover_pa
+        - script.execute: cec_probe_role
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+
+logger:
+  level: INFO
+
+api:
+  # Default is a forced reboot after 15 min without a Home Assistant client. A
+  # unit driven from the web page only, or not adopted yet, would reboot every
+  # 15 min and each reboot resets the HDMI switch (a hot-plug to the TV).
+  reboot_timeout: 0s
+  # Generic CEC entry points for Home Assistant, so a user can add any remote key
+  # or send any CEC message from an HA button/automation without reflashing. The
+  # pre-baked buttons below cover the common cases; these cover everything else.
+  actions:
+    # Remote key (User Control Pressed + Released) to any logical address.
+    # dest: 0=TV, 4/8/11=playback, 5=audio system. key: a CEC UI command code
+    # (HDMI 1.4b table 27), e.g. 0x20-0x29 numbers, 0x30/0x31 channel up/down,
+    # 0x71-0x74 colour keys. Role-gated and queue-spaced via cec_send_key.
+    - action: send_cec_key
+      variables:
+        dest: int
+        key: int
+      then:
+        - script.execute:
+            id: cec_send_key
+            dest: !lambda 'return dest;'
+            key: !lambda 'return key;'
+    # Arbitrary CEC frame (advanced): opcode + operands as a byte list, e.g.
+    # [0x70, 0x00] System Audio Mode Request. Transmits only in the TV role. A
+    # single user-triggered send in its own loop pass, so calling cec.send here
+    # is safe (unlike the on_message handlers, which must never call it directly).
+    - action: send_cec_frame
+      variables:
+        destination: int
+        data: int[]
+      then:
+        - lambda: |-
+            if (id(cec_role) != 1 && id(cec_role) != 3) return;
+            std::vector<uint8_t> payload;
+            for (int b : data) payload.push_back((uint8_t) b);
+            id(cec).send(id(cec).address(), (uint8_t) destination, payload);
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+  - platform: http_request
+
+# Pull-based OTA: device checks the per-HW manifest and exposes an `update` entity
+# in Home Assistant. Publish a new manifest + firmware.ota.bin to update fielded units.
+http_request:
+  timeout: 10s
+
+update:
+  - platform: http_request
+    name: "Firmware"
+    id: ota_http_update
+    source: ${update_manifest}
+    update_interval: 6h
+
+# local: the stock page loads its UI script from oi.esphome.io, which leaves a
+# blank page on networks that cannot reach it (seen on a guest WiFi). Embedding
+# it costs flash, not RAM, and removes the only internet dependency.
+web_server:
+  local: true
+
+# Default is a 60 s deferred write, and a power cut inside that window loses the
+# selection (seen: mux came back on the previous input after an immediate power
+# cycle). Selections and Learn bindings change rarely, so immediate writes are
+# negligible wear.
+preferences:
+  flash_write_interval: 0s
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  ap:
+    ssid: "Hdmi-Switch Fallback Hotspot"
+    password: "HDMI_SWITCH"
+
+captive_portal:
+
+# DDC tap: ESP32 reads the TV's EDID in parallel with the TS3DV642 pass-through.
+i2c:
+  id: ddc_bus
+  sda: GPIO6
+  scl: GPIO7
+  frequency: 100kHz
+  scan: false
+
+globals:
+  # Logical address -> port map. 0 = unbound, 1 = port A, 2 = port B. Seeded at
+  # boot from the persisted Learn-button bindings below, so it is a runtime
+  # cache: the source of truth is learned_la_a / learned_la_b.
+  - id: la_port
+    type: int[15]
+    initial_value: "{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}"
+  # Persisted port bindings set by the Learn buttons: the logical address bound
+  # to each port, 0 = nothing learned yet. restore_value keeps them across a
+  # reboot so the user never has to bind twice. This replaces the compile-time
+  # OSD-name map (B2): a non-technical user selects the input, presses Learn,
+  # and the mux records whichever device currently owns the bus.
+  - id: learned_la_a
+    type: int
+    restore_value: true
+    initial_value: "0"
+  - id: learned_la_b
+    type: int
+    restore_value: true
+    initial_value: "0"
+  # Per-LA "have we asked this device its OSD name yet", so each source is
+  # queried exactly once per boot (names are display-only now, see the "CEC
+  # Sources" sensor). Not persisted: names are cheap to re-fetch and a device
+  # may change between boots.
+  - id: queried
+    type: bool[15]
+    initial_value: "{false,false,false,false,false,false,false,false,false,false,false,false,false,false,false}"
+  # Last logical address (1..14) we heard any frame from, and when. The Learn
+  # buttons bind whatever owns the bus right now, which is this address.
+  - id: last_src_la
+    type: int
+    initial_value: "-1"
+  - id: last_src_ms
+    type: uint32_t
+    initial_value: "0"
+  # Set once the display's physical address has been read at least once, to
+  # stop the fast DDC poll (the EDID only changes when the display does).
+  - id: pa_known
+    type: bool
+    initial_value: "false"
+  # The physical address the display's EDID advertises for whatever is plugged
+  # into its port, i.e. ours. 0 = not read yet. In the source role this is the
+  # address we must claim on the CEC bus; in the TV role we are the root and
+  # stay at 0.0.0.0 regardless. Not persisted: re-read from EDID every boot,
+  # since it changes whenever the display or the cabling does.
+  - id: own_pa
+    type: uint16_t
+    initial_value: "0"
+  # CEC role: 0 = undecided (boot), 1 = we are the TV (no CEC TV on the bus),
+  # 2 = passive/silent (a CEC TV is present but no free playback address to take),
+  # 3 = source (a CEC TV is present; we hold a free playback address so we can
+  # still originate control, e.g. volume to the TV or keys to sources, without
+  # ever claiming address 0). Set only through cec_set_role.
+  - id: cec_role
+    type: int
+    initial_value: "0"
+  # Role 3 only: the free playback logical address (4/8/11) we allocated so we can
+  # transmit alongside a real CEC TV. -1 = none. Not persisted: re-probed each
+  # boot, since which playback address is free can change between boots.
+  - id: source_la
+    type: int
+    initial_value: "-1"
+  # Address cec_probe_role polls to decide the role. 0 is the only correct
+  # value in production; the bench package points it at a known-occupied
+  # address to exercise the "TV present" branch without a CEC TV on hand.
+  - id: cec_role_probe_la
+    type: int
+    initial_value: "0"
+
+# Local copy of Palakis/esphome-native-hdmi-cec with a hardened transmit path:
+# wrap-safe timing math (unpatched, unsigned time subtractions underflow into
+# multi-minute busy-waits and task watchdog resets, upstream issue #50) and a
+# FreeRTOS priority boost per frame so the WiFi task cannot stretch bit timing.
+# See cec_tx_reliability.md.
+external_components:
+  - source:
+      type: local
+      path: components
+
+# When the display has no CEC (the bench sink is a projector), the mux claims
+# the TV role itself: logical address 0, physical address 0.0.0.0. Sources aim
+# One Touch Play at the "TV" and the mux routes video to whichever port
+# announced itself.
+#
+# Address 0 is reserved for TVs, so claiming it is only legal when no CEC TV is
+# on the bus: two devices answering at 0 acknowledge each other's frames and
+# break CEC for everything. cec_probe_role decides which case we are in by
+# polling address 0, at boot and every 5 minutes after. Boot state is
+# deliberately passive (monitor_mode: true, nothing is acknowledged and nothing
+# is transmitted) so a TV cannot be disturbed before the answer is known.
+hdmi_cec:
+  id: cec
+  pin: GPIO4
+  address: 0x00
+  physical_address: 0x0000
+  osd_name: "${osd_name}"
+  promiscuous_mode: true
+  monitor_mode: true
+  on_message:
+    # Catch-all log. Any matching trigger suppresses the component's built-in
+    # replies, and this one matches every frame, so every response a TV must
+    # give is implemented explicitly below. Removing this trigger re-enables
+    # the built-in handlers, which call send() directly from loop() and can
+    # stack blocking transmits: do not remove it without moving those replies.
+    # IMPORTANT: never call cec.send() directly from these handlers. Sends are
+    # blocking bit-banged transmits (2.4 ms/bit plus retries); the component
+    # processes every queued RX frame in one loop() pass, and stacking several
+    # sends in one pass starves the task watchdog (confirmed crash). All TX
+    # goes through cec_tx, a queued script that spaces sends across passes.
+    - then:
+        - lambda: |-
+            auto frame = hdmi_cec::Frame(source, destination, data);
+            id(cec_log).publish_state(frame.to_string(true));
+            // Track who currently owns the bus, so a Learn button can bind it.
+            if (source >= 1 && source <= 14) {
+              id(last_src_la) = source;
+              id(last_src_ms) = millis();
+            }
+            // Nothing else may transmit from address 0 while we hold it. The
+            // ISR is detached while we send, so we never hear our own frames:
+            // traffic from address 0 is always another device. This is the
+            // net for a TV that was powered off when the probe ran.
+            if (source == 0 && id(cec_role) == 1) {
+              ESP_LOGW("CEC", "address 0 is in use by another device, standing down");
+              id(cec_set_role).execute(2);
+              // Re-probe off the RX path (a blocking allocation here would stack
+              // sends in one loop pass): upgrade to the source role so we can
+              // still control this TV, instead of staying silent until the next
+              // periodic probe.
+              id(cec_reprobe).execute();
+            }
+
+    # <Active Source>: a source took the screen. Route the mux to its port if
+    # that source has been bound with a Learn button; otherwise just catalogue
+    # its name for the diagnostic (no auto-switch until the user binds it).
+    - opcode: 0x82
+      then:
+        - lambda: |-
+            if (source == 0 || source > 14) return;
+            int port = id(la_port)[source];
+            if (port == 1) {
+              id(hdmi_switch_select).make_call().set_option("${source_a}").perform();
+            } else if (port == 2) {
+              id(hdmi_switch_select).make_call().set_option("${source_b}").perform();
+            }
+            // Query the OSD name once per boot even for an already-bound
+            // device, so "CEC Sources" shows its real name after a reboot
+            // instead of "?" (the name cache is not persisted).
+            if ((id(cec_role) == 1 || id(cec_role) == 3) && !id(queried)[source]) {
+              id(queried)[source] = true;
+              id(cec_tx).execute(source, 0x46, -1);
+            }
+
+    # <Report Physical Address>: a source came up; fetch its OSD name once.
+    - opcode: 0x84
+      then:
+        - lambda: |-
+            if (source == 0 || source > 14) return;
+            if ((id(cec_role) == 1 || id(cec_role) == 3) && !id(queried)[source]) {
+              id(queried)[source] = true;
+              id(cec_tx).execute(source, 0x46, -1);
+            }
+
+    # <Set OSD Name>: record the sender's name for the "CEC Sources" diagnostic.
+    # Port assignment comes from the Learn buttons, not the name, so this only
+    # re-applies a persisted binding defensively and refreshes the summary.
+    - opcode: 0x47
+      then:
+        - lambda: |-
+            if (source == 0 || source > 14 || data.size() < 2) return;
+            std::string name(data.begin() + 1, data.end());
+            if ((int) source == id(learned_la_a)) id(la_port)[source] = 1;
+            else if ((int) source == id(learned_la_b)) id(la_port)[source] = 2;
+            id(cec_devices_publish).execute((int) source, name);
+
+    # <Standby> (0x36) is deliberately NOT handled: the mux keeps its current
+    # selection when a source or the display powers down. Mirroring standby to
+    # "Off" left the user on a blank input next session, because a source that
+    # wakes up does not necessarily re-announce <Active Source> (a Pi whose CEC
+    # is dead below the app layer never does), so nothing selected the port
+    # again. Routing is only changed by the user or by <Active Source>.
+
+    # <Give Device Power Status>: report On unless the mux is Off.
+    # Sources poll this every few seconds, so it doubles as a free retry channel
+    # for the one-shot OSD-name query if the 0x84 request was missed.
+    #
+    # The six handlers below match on our own logical address rather than a
+    # fixed destination: 0x0, because in the source role we answer at the
+    # playback address we allocated, not at 0. This is spec conformance, not a
+    # fix for an observed fault: a device that acknowledges a frame and then
+    # answers nothing can be dropped from a display's device map, but the test
+    # display never queried us at all, so none of these ever fired in the source
+    # role. Broadcasts (0x0F) are excluded because cec_probe_role parks the
+    # address at 0x0F while the previous role is still set, which would
+    # otherwise make every broadcast look like it was addressed to us.
+    - opcode: 0x8F
+      then:
+        - lambda: |-
+            if (id(cec_role) != 1 && id(cec_role) != 3) return;
+            if (destination == 0x0F || destination != id(cec).address()) return;
+            int status = (id(hdmi_switch_select).current_option() == "Off") ? 0x01 : 0x00;
+            id(cec_tx).execute(source, 0x90, status);
+            if (source > 0 && source <= 14 && !id(queried)[source]) {
+              id(queried)[source] = true;
+              id(cec_tx).execute(source, 0x46, -1);
+            }
+
+    # <Get CEC Version> -> <CEC Version> 1.3a.
+    - opcode: 0x9F
+      then:
+        - lambda: |-
+            if (id(cec_role) != 1 && id(cec_role) != 3) return;
+            if (destination == 0x0F || destination != id(cec).address()) return;
+            id(cec_tx).execute(source, 0x9E, -1);
+
+    # <Give OSD Name> -> <Set OSD Name>.
+    - opcode: 0x46
+      then:
+        - lambda: |-
+            if (id(cec_role) != 1 && id(cec_role) != 3) return;
+            if (destination == 0x0F || destination != id(cec).address()) return;
+            id(cec_tx).execute(source, 0x47, -1);
+
+    # <Give Physical Address> -> broadcast <Report Physical Address>. The payload
+    # is role-dependent (see cec_tx): 0.0.0.0 type TV in the TV role, the EDID
+    # address and type Playback in the source role.
+    - opcode: 0x83
+      then:
+        - lambda: |-
+            if (id(cec_role) != 1 && id(cec_role) != 3) return;
+            if (destination == 0x0F || destination != id(cec).address()) return;
+            id(cec_tx).execute(0xF, 0x84, -1);
+
+    # Probes we don't support: Feature Abort so libCEC scans finish fast.
+    - opcode: 0x8C
+      then:
+        - lambda: |-
+            if (id(cec_role) != 1 && id(cec_role) != 3) return;
+            if (destination == 0x0F || destination != id(cec).address()) return;
+            id(cec_tx).execute(source, 0x00, 0x8C);
+    - opcode: 0x91
+      then:
+        - lambda: |-
+            if (id(cec_role) != 1 && id(cec_role) != 3) return;
+            if (destination == 0x0F || destination != id(cec).address()) return;
+            id(cec_tx).execute(source, 0x00, 0x91);
+
+script:
+  # Serialized CEC transmit queue. Each run resumes in its own loop() pass
+  # (the delay yields back to the scheduler), so at most one blocking send
+  # happens per pass no matter how fast queries arrive.
+  - id: cec_tx
+    mode: queued
+    max_runs: 16
+    parameters:
+      dest: int
+      op: int
+      arg: int
+    then:
+      - delay: 25ms
+      - lambda: |-
+          // Backstop: every reply handler already checks the role, and monitor
+          // mode makes send() a no-op anyway, but a queue that keeps filling
+          // while silent would hit max_runs and log for nothing. Both the TV role
+          // (1) and the source role (3, a real CEC TV present) may transmit.
+          if (id(cec_role) != 1 && id(cec_role) != 3) return;
+          std::vector<uint8_t> payload;
+          uint8_t d = (uint8_t) dest;
+          switch (op) {
+            case 0x46: payload = {0x46}; break;
+            case 0x90: payload = {0x90, (uint8_t) arg}; break;
+            case 0x9E: payload = {0x9E, 0x04}; break;
+            case 0x47: {
+              payload = {0x47};
+              for (char c : std::string("${osd_name}")) payload.push_back((uint8_t) c);
+              break;
+            }
+            // <Report Physical Address> is always a broadcast, and its operands
+            // must match the role: as the TV we are the root (0.0.0.0, device
+            // type 0 = TV); as a source we own the address the display's EDID
+            // advertises for its port (device type 4 = Playback). Announcing
+            // 0.0.0.0 while a real TV is present would claim the TV's own
+            // address, so the source role stays quiet until the EDID is read.
+            case 0x84: {
+              uint16_t pa = (id(cec_role) == 1) ? 0x0000 : id(own_pa);
+              if (id(cec_role) == 3 && pa == 0x0000) return;
+              uint8_t dev_type = (id(cec_role) == 1) ? 0x00 : 0x04;
+              payload = {0x84, (uint8_t) (pa >> 8), (uint8_t) (pa & 0xFF), dev_type};
+              d = 0xF;
+              break;
+            }
+            case 0x00: payload = {0x00, (uint8_t) arg, 0x00}; break;
+            case 0x44: payload = {0x44, (uint8_t) arg}; break;
+            case 0x45: payload = {0x45}; break;
+            // <Give Device Power Status>: probe whether a device will hold an
+            // application-layer conversation with us, not just acknowledge us.
+            case 0x8F: payload = {0x8F}; break;
+            // <Image View On>: One Touch Play wake. The TV then selects our
+            // input on its own and the source behind the selected port claims
+            // <Active Source> by itself. Never broadcast <Active Source> from
+            // the mux: it shares the source's physical address, so the TV would
+            // route remote keys to us instead of the source (verified).
+            case 0x04: payload = {0x04}; break;
+            case 0x36: payload = {0x36}; break;
+            // <Request Active Source>: makes the real source re-claim the
+            // screen, which repairs key routing after any claimant confusion.
+            case 0x85: payload = {0x85}; d = 0xF; break;
+            default: return;
+          }
+          // send() returns the ACK bit. Discarding it made a frame the sink
+          // never acknowledged look exactly like a delivered one, which is the
+          // difference between "the TV ignored us" and "the TV never heard us".
+          bool acked = id(cec).send(id(cec).address(), d, payload);
+          // Success at DEBUG: in the TV role the mux answers polls constantly,
+          // and logging every one of those at INFO drowns the default log.
+          if (acked) {
+            ESP_LOGD("CEC", "TX %X->%X op 0x%02X: ack", (unsigned) id(cec).address(), (unsigned) d, (unsigned) op);
+          } else {
+            ESP_LOGW("CEC", "TX %X->%X op 0x%02X: NO ACK", (unsigned) id(cec).address(), (unsigned) d, (unsigned) op);
+          }
+
+  # Apply a CEC role. Always reapplies the address and monitor mode, because
+  # cec_probe_role deliberately leaves both in a temporary state while probing.
+  - id: cec_set_role
+    parameters:
+      role: int
+    then:
+      - lambda: |-
+          bool changed = (id(cec_role) != role);
+          // Role 3 needs a valid allocated playback address; if the probe found
+          // none, fall back to silent instead.
+          if (role == 3 && (id(source_la) < 1 || id(source_la) > 14)) role = 2;
+          id(cec_role) = role;
+          if (role == 1) {
+            // As the TV we are the root of the HDMI tree.
+            id(cec).set_physical_address(0x0000);
+            id(cec).set_address(0x00);
+            id(cec).set_monitor_mode(false);
+          } else if (role == 3) {
+            // As a source we take the address the display's EDID advertises for
+            // its port. The compile-time 0x0000 is the TV's own address, but it
+            // was never actually transmitted in this role before (nothing sent
+            // <Report Physical Address> here), so this only started to matter
+            // once we began announcing ourselves above.
+            id(cec).set_physical_address(id(own_pa));
+            // Source role: hold our free playback address and transmit, but never
+            // answer as the TV (the reply handlers stay gated to role 1), so we
+            // coexist with the real TV at address 0 instead of colliding (B1).
+            id(cec).set_address((uint8_t) id(source_la));
+            id(cec).set_monitor_mode(false);
+          } else {
+            // Silent (0 undecided / 2 passive). Stop acknowledging before giving
+            // up the address, not after.
+            id(cec).set_monitor_mode(true);
+            id(cec).set_address(0x0F);
+          }
+          if (changed) {
+            const char *desc = (role == 1) ? "TV"
+                             : (role == 3) ? "Source: CEC TV present"
+                             : "Passive: no free CEC address";
+            id(cec_role_text).publish_state(desc);
+            if (role == 1) {
+              ESP_LOGI("CEC", "role: TV, no CEC display on the bus");
+            } else if (role == 3) {
+              ESP_LOGI("CEC", "role: source at LA %X, a CEC TV owns address 0", (unsigned) id(source_la));
+              // Announce the address we just allocated, as a device holding one
+              // is expected to do. Spec conformance only: the test display
+              // conversed with us either way (it answered <Give Device Power
+              // Status> addressed to our playback LA) and never aborted our
+              // frames. Announcing does NOT make a TV act on <User Control
+              // Pressed>; that direction is optional and this one declines it.
+              // <Set OSD Name> is deliberately not pushed here: it is a directly
+              // addressed reply, not a broadcast, and the TV asks for it with
+              // <Give OSD Name> once it has us in its device map.
+              id(cec_tx).execute(0xF, 0x84, -1);
+            } else {
+              ESP_LOGW("CEC", "role: passive, CEC TV present but no playback address free");
+            }
+          }
+
+  # Decide whether the mux may act as the TV, by polling logical address 0. A
+  # polling message is a bare header that still has to be acknowledged, so an
+  # acknowledgement means somebody is already there, and address 0 is TV-only.
+  # Runs at boot and every 5 minutes: a TV that was unplugged or in deep standby
+  # during the boot probe must not find us squatting on its address later.
+  - id: cec_probe_role
+    mode: single
+    then:
+      - lambda: |-
+          // Probing needs the transmitter, so leave monitor mode, but give up
+          // address 0 first: until the poll is answered we must not acknowledge
+          // as the TV. send() takes the initiator explicitly, so this is still
+          // a proper initiator == follower allocation probe.
+          id(cec).set_address(0x0F);
+          id(cec).set_monitor_mode(false);
+          uint8_t la = (uint8_t) id(cec_role_probe_la);
+          uint32_t t0 = millis();
+          // count_stats=false: a free-address probe burns all 5 retries with no
+          // ack by design, so counting it would show a failing transmitter that
+          // is in fact perfect (B10).
+          bool occupied = id(cec).send(la, la, {}, false);
+          ESP_LOGI("CEC", "probe of logical address %X: %s (%u ms)", la,
+                   occupied ? "occupied" : "free", (unsigned) (millis() - t0));
+          if (!occupied) {
+            // Address 0 free: no CEC TV, we take the TV role.
+            id(source_la) = -1;
+            id(cec_set_role).execute(1);
+            return;
+          }
+          // A CEC TV owns address 0. Instead of going silent, allocate a free
+          // playback address (4/8/11) so we can still originate control toward
+          // the TV and the sources, without ever claiming address 0 (B1 stays
+          // fixed). First free candidate wins; if all are taken, go passive.
+          const uint8_t cand[3] = {0x04, 0x08, 0x0B};
+          int chosen = -1;
+          // Pass 0 skips addresses a Learn button bound to a port: a source that
+          // is powered off, or on the deselected port with no HPD, probes as
+          // free, and taking its address would push it elsewhere on its next
+          // allocation, permanently breaking auto-switch for that port. Pass 1
+          // drops the reservation if that left us with nothing, because a stolen
+          // address costs one port's auto-switch while going passive costs every
+          // transmit the mux has.
+          for (int pass = 0; pass < 2 && chosen < 0; pass++) {
+            for (int i = 0; i < 3; i++) {
+              bool reserved = ((int) cand[i] == id(learned_la_a) || (int) cand[i] == id(learned_la_b));
+              if (pass == 0 && reserved) {
+                ESP_LOGI("CEC", "probe playback LA %X: reserved for a learned port", cand[i]);
+                continue;
+              }
+              if (pass == 1 && !reserved) continue;
+              bool taken = id(cec).send(cand[i], cand[i], {}, false);
+              ESP_LOGI("CEC", "probe playback LA %X: %s", cand[i], taken ? "taken" : "free");
+              if (!taken) {
+                chosen = cand[i];
+                if (pass == 1) {
+                  ESP_LOGW("CEC", "LA %X is bound to a port, taking it anyway: nothing else free", cand[i]);
+                }
+                break;
+              }
+            }
+          }
+          id(source_la) = chosen;
+          id(cec_set_role).execute(chosen > 0 ? 3 : 2);
+
+  # Re-probe shortly after standing down, off the RX path. mode: restart so a
+  # burst of address-0 frames coalesces into a single probe. Lets the source role
+  # come up promptly after a TV powers on post-boot, without doing the blocking
+  # address allocation inside the message handler.
+  - id: cec_reprobe
+    mode: restart
+    then:
+      - delay: 2s
+      - script.execute: cec_probe_role
+
+  # Low-level UI command: <User Control Pressed> + <User Control Released> to an
+  # explicit logical address (0..14; 0 is the TV). Shared primitive behind the
+  # remote-key buttons (via cec_send_target) and the send_cec_key API action.
+  # Role gating and one-send-per-loop-pass spacing come from cec_tx, so callers
+  # never touch cec.send directly.
+  - id: cec_send_key
+    parameters:
+      dest: int
+      key: int
+    then:
+      - lambda: |-
+          if (dest < 0 || dest > 14) return;
+          id(cec_tx).execute(dest, 0x44, key);
+          id(cec_tx).execute(dest, 0x45, -1);
+
+  # Remote-control key aimed at whatever the "CEC Target" selector currently
+  # points at (universal-remote model): one dropdown decides who every remote
+  # button drives, so the same keypad can control a source, the TV, or an audio
+  # system without per-button routing. Resolves the target to a logical address,
+  # then reuses cec_send_key (role gating + one-send-per-loop-pass via cec_tx).
+  #
+  #   Source (auto)       the learned source on the port currently on screen
+  #   Source A / Source B a learned source explicitly, on screen or not
+  #   TV (LA 0)           the display at address 0 (a real CEC TV)
+  #   Audio System (LA 5) a CEC audio system / AVR
+  #   Sink (auto)         role-resolved sink: LA 0 with a real CEC TV present
+  #                       (role 3), else the audio system LA 5 (role 1)
+  #
+  # Note on reliability: on v2.0 only the selected port has HPD, so a source on
+  # the OTHER port may ignore CEC (it thinks it is unplugged). Aiming at a
+  # deselected source is best-effort; the on-screen source is the reliable case.
+  - id: cec_send_target
+    mode: queued
+    max_runs: 6
+    parameters:
+      key: int
+    then:
+      - lambda: |-
+          int dest = -1;
+          std::string tgt = id(cec_target).current_option().str();
+          if (tgt == "TV (LA 0)") {
+            dest = 0;
+          } else if (tgt == "Audio System (LA 5)") {
+            dest = 5;
+          } else if (tgt == "Sink (auto)") {
+            if (id(cec_role) == 3) dest = 0;
+            else if (id(cec_role) == 1) dest = 5;
+          } else {
+            // Source A / Source B / Source (auto) -> a learned source LA. 0
+            // means nothing learned, which is the TV address, so reject it here.
+            int la = 0;
+            if (tgt == "Source A") la = id(learned_la_a);
+            else if (tgt == "Source B") la = id(learned_la_b);
+            else {
+              std::string sel = id(hdmi_switch_select).current_option().str();
+              if (sel == "${source_a}") la = id(learned_la_a);
+              else if (sel == "${source_b}") la = id(learned_la_b);
+            }
+            if (la >= 1 && la <= 14) dest = la;
+          }
+          if (dest < 0) {
+            ESP_LOGW("CEC", "key 0x%02X not sent: target '%s' unresolved (no learned source / no CEC sink for this role)", key, tgt.c_str());
+            return;
+          }
+          ESP_LOGI("CEC", "key 0x%02X -> LA %X (target %s)", key, dest, tgt.c_str());
+          id(cec_send_key).execute(dest, key);
+
+  # Bind a port (1 = A, 2 = B) to whichever CEC source currently owns the bus.
+  # The user selects the input, sees the device on screen, and presses Learn;
+  # last_src_la is that device (on v2.0 only the selected port has HPD, so the
+  # only source transmitting is the one on screen). The binding is persisted, so
+  # it is a one-time action per source. Replaces the compile-time OSD map (B2).
+  - id: cec_learn
+    parameters:
+      port: int
+    then:
+      - lambda: |-
+          const char *pn = (port == 1) ? "A" : "B";
+          int la = id(last_src_la);
+          if (la < 1 || la > 14 || (uint32_t) (millis() - id(last_src_ms)) > 60000) {
+            ESP_LOGW("CEC", "Learn %s: no live CEC source in the last 60 s; select input %s with the device on, then retry", pn, pn);
+            id(cec_learn_status).publish_state(std::string("Port ") + pn + ": no source seen, select that input and retry");
+            return;
+          }
+          // A device belongs to one port: release the current holder of this
+          // port, and clear the other port's persisted slot if it held this LA.
+          for (int i = 1; i <= 14; i++) {
+            if (id(la_port)[i] == port) id(la_port)[i] = 0;
+          }
+          if (id(la_port)[la] == 1) id(learned_la_a) = 0;
+          else if (id(la_port)[la] == 2) id(learned_la_b) = 0;
+          id(la_port)[la] = port;
+          if (port == 1) id(learned_la_a) = la; else id(learned_la_b) = la;
+          char buf[32];
+          snprintf(buf, sizeof(buf), "Port %s = LA %X", pn, la);
+          ESP_LOGI("CEC", "Learned %s", buf);
+          id(cec_learn_status).publish_state(buf);
+          id(cec_devices_publish).execute(-1, std::string(""));
+
+  # Rebuild the "CEC Sources" diagnostic. Pass an LA and name to record it, or
+  # (-1, "") to just refresh the port arrows after a Learn. Names are held in a
+  # static here so both the 0x47 handler and cec_learn can update the summary.
+  - id: cec_devices_publish
+    parameters:
+      la: int
+      name: string
+    then:
+      - lambda: |-
+          static std::string names[15];
+          if (la >= 0 && la <= 14 && !name.empty()) names[la] = name;
+          std::string summary;
+          for (int i = 1; i < 15; i++) {
+            int p = id(la_port)[i];
+            if (names[i].empty() && p == 0) continue;
+            char pfx[4];
+            snprintf(pfx, sizeof(pfx), "%X:", i);
+            summary += pfx;
+            summary += names[i].empty() ? "?" : names[i];
+            summary += (p == 1) ? "->A " : (p == 2) ? "->B " : "->? ";
+          }
+          id(cec_devices).publish_state(summary.empty() ? "none" : summary);
+
+  # Read the display's EDID over the DDC tap and publish the HDMI physical
+  # address it advertises. Diagnostic only: this is the address BOTH sources
+  # adopt, since the DDC lines pass straight through to them as well.
+  - id: discover_pa
+    then:
+      - lambda: |-
+          auto *bus = id(ddc_bus);
+          uint8_t edid[256];
+
+          // EDID block 0 (set byte offset, then read 128 bytes from 0x50).
+          uint8_t off0 = 0x00;
+          if (bus->write(0x50, &off0, 1, false) != i2c::ERROR_OK) { ESP_LOGW("EDID", "block0 offset write failed"); return; }
+          if (bus->read(0x50, edid, 128) != i2c::ERROR_OK) { ESP_LOGW("EDID", "block0 read failed"); return; }
+
+          static const uint8_t hdr[8] = {0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00};
+          for (int k = 0; k < 8; k++) {
+            if (edid[k] != hdr[k]) { ESP_LOGW("EDID", "bad header"); return; }
+          }
+          if (edid[0x7E] == 0) { ESP_LOGW("EDID", "no CEA extension block"); return; }
+
+          // EDID block 1 (CEA-861 extension, where the HDMI VSDB lives).
+          uint8_t off1 = 0x80;
+          if (bus->write(0x50, &off1, 1, false) != i2c::ERROR_OK) { ESP_LOGW("EDID", "block1 offset write failed"); return; }
+          if (bus->read(0x50, edid + 128, 128) != i2c::ERROR_OK) { ESP_LOGW("EDID", "block1 read failed"); return; }
+
+          uint8_t *cea = edid + 128;
+          if (cea[0] != 0x02) { ESP_LOGW("EDID", "not a CEA-861 extension"); return; }
+          uint8_t dtd = cea[2];
+          if (dtd < 5) { ESP_LOGW("EDID", "no data block collection"); return; }
+
+          // Walk the CEA data blocks looking for the HDMI VSDB (IEEE OUI 00-0C-03).
+          uint16_t pa = 0xFFFF;
+          uint8_t i = 4;
+          while (i < dtd) {
+            uint8_t tag = (cea[i] >> 5) & 0x07;
+            uint8_t len = cea[i] & 0x1F;
+            if (tag == 3 && len >= 5 && cea[i+1] == 0x03 && cea[i+2] == 0x0C && cea[i+3] == 0x00) {
+              pa = (cea[i+4] << 8) | cea[i+5];
+              break;
+            }
+            i += 1 + len;
+          }
+          if (pa == 0xFFFF) { ESP_LOGW("EDID", "no HDMI VSDB / physical address found"); return; }
+
+          char buf[12];
+          snprintf(buf, sizeof(buf), "%X.%X.%X.%X", (pa >> 12) & 0xF, (pa >> 8) & 0xF, (pa >> 4) & 0xF, pa & 0xF);
+          std::string pa_str(buf);
+          id(pa_known) = true;
+          // Adopt it as our own CEC physical address. Only the source role uses
+          // it (as the TV we are the root at 0.0.0.0), and a change means the
+          // display or the cabling moved, so re-announce ourselves.
+          bool pa_changed = (id(own_pa) != pa);
+          id(own_pa) = pa;
+          if (pa_changed && id(cec_role) == 3) {
+            id(cec).set_physical_address(pa);
+            id(cec_tx).execute(0xF, 0x84, -1);
+          }
+          if (id(cec_pa).state != pa_str) {
+            id(cec_pa).publish_state(pa_str);
+            ESP_LOGI("EDID", "Display advertises physical address %s", buf);
+          }
+
+interval:
+  # Fast DDC poll, but only until the display's physical address is read once.
+  # After that it stops: the EDID changes only when the display does, and two
+  # I2C reads every 30 s share the DDC bus the live source is using (B8). A
+  # display swap is caught by the 10 min re-read and the input-change hook.
+  - interval: 30s
+    then:
+      - if:
+          condition:
+            lambda: "return !id(pa_known);"
+          then:
+            - script.execute: discover_pa
+  # Periodic re-read to catch a display swap, long enough not to load the bus.
+  - interval: 10min
+    then:
+      - script.execute: discover_pa
+  # Role probe backed off from 5 min: it blocks loop() ~194 ms each run, and
+  # the source-0 catch-all trigger already stands us down the instant a TV
+  # transmits, so this only needs to catch a TV that powers on and stays silent.
+  - interval: 30min
+    then:
+      - script.execute: cec_probe_role
+
+select:
+  - platform: template
+    name: "HDMI Switch"
+    id: hdmi_switch_select
+    icon: "mdi:hdmi-port"
+    optimistic: true
+    # Survive a power cut: without this every outage lands the user on a black
+    # screen with the device showing Off (B7). on_boot re-applies the restored
+    # option after the pins are configured, since the restore runs earlier.
+    restore_value: true
+    initial_option: "Off"
+    options:
+      - "Off"
+      - "${source_a}"
+      - "${source_b}"
+    set_action:
+      - lambda: |-
+          if (x == "Off") {
+            gpio_set_level(GPIO_NUM_8, 0);
+          } else if (x == "${source_a}") {
+            gpio_set_level(GPIO_NUM_8, 1);
+            gpio_set_level(GPIO_NUM_2, 1);
+            gpio_set_level(GPIO_NUM_3, 0);
+          } else if (x == "${source_b}") {
+            gpio_set_level(GPIO_NUM_8, 1);
+            gpio_set_level(GPIO_NUM_2, 1);
+            gpio_set_level(GPIO_NUM_3, 1);
+          }
+          ESP_LOGI("HDMI", "Switch set to %s", x.c_str());
+      # DDC is only tapped downstream of the mux, so re-read the display's EDID
+      # when a source is selected: the address may not have been readable while
+      # Off (B8).
+      - if:
+          condition:
+            lambda: 'return x != "Off";'
+          then:
+            - delay: 500ms
+            - script.execute: discover_pa
+
+  # Who the remote-key buttons drive. One selector, universal-remote style: the
+  # keypad below (nav, transport, volume, mute) all send to this target. Default
+  # "Source (auto)" reproduces the old nav routing (the device on screen); pick
+  # "Sink (auto)" to send volume to the TV/audio system as before, or aim at a
+  # specific source to control it directly. Persisted across reboots.
+  - platform: template
+    name: "CEC Target"
+    id: cec_target
+    icon: "mdi:target"
+    optimistic: true
+    restore_value: true
+    initial_option: "Source (auto)"
+    options:
+      - "Source (auto)"
+      - "Sink (auto)"
+      - "Source A"
+      - "Source B"
+      - "TV (LA 0)"
+      - "Audio System (LA 5)"
+
+button:
+  # Broadcast <Standby>. A CEC TV honours it too and rebroadcasts it, so this
+  # is "everything off, TV included" (verified on a real TV).
+  - platform: template
+    name: "All Standby"
+    icon: "mdi:power-standby"
+    on_press:
+      - script.execute: {id: cec_tx, dest: 0xF, op: 0x36, arg: -1}
+
+  # Directed <Standby> to the learned sources only, leaving the TV on. Best
+  # effort: honouring a standby from a non-TV device is the source's policy
+  # (Kodi's default "ignore" did nothing; the frame was still acknowledged).
+  - platform: template
+    name: "Sources Standby"
+    icon: "mdi:power-sleep"
+    on_press:
+      - lambda: |-
+          int a = id(learned_la_a), b = id(learned_la_b);
+          if (a >= 1 && a <= 14) id(cec_tx).execute(a, 0x36, -1);
+          if (b >= 1 && b <= 14 && b != a) id(cec_tx).execute(b, 0x36, -1);
+          if ((a < 1 || a > 14) && (b < 1 || b > 14)) {
+            ESP_LOGW("CEC", "Sources Standby: nothing learned yet, use the Learn buttons first");
+          }
+
+  # One Touch Play: wakes the TV and makes it select our input. Only <Image
+  # View On> is sent; the selected source announces itself (verified: TV on in
+  # 4 s, keys routed to the source with no further action).
+  - platform: template
+    name: "TV On"
+    icon: "mdi:television"
+    on_press:
+      - script.execute: {id: cec_tx, dest: 0x0, op: 0x04, arg: -1}
+
+  # Recovery: if the TV routes remote keys to the wrong device (e.g. after two
+  # devices claimed the same physical address), the real source re-claims.
+  - platform: template
+    name: "Request Active Source"
+    icon: "mdi:refresh"
+    entity_category: diagnostic
+    on_press:
+      - script.execute: {id: cec_tx, dest: 0xF, op: 0x85, arg: -1}
+
+  # Bind the source currently on screen to a port. Select the input first, make
+  # sure the device is on, then press. No YAML editing or OSD names needed (B2).
+  - platform: template
+    name: "Learn Port A"
+    icon: "mdi:import"
+    on_press:
+      - script.execute: {id: cec_learn, port: 1}
+  - platform: template
+    name: "Learn Port B"
+    icon: "mdi:import"
+    on_press:
+      - script.execute: {id: cec_learn, port: 2}
+
+  # Bring-up diagnostic for a new display: asks the TV for its power status. A
+  # reply proves the sink will hold an application-layer conversation with us,
+  # so remote keys that do nothing are the TV's policy (source -> TV control is
+  # optional in CEC and widely declined) rather than an addressing fault. Pair
+  # it with the TX ack/NO ACK log line to tell "ignored" from "never heard".
+  - platform: template
+    name: "CEC Ping TV"
+    icon: "mdi:help-network-outline"
+    entity_category: diagnostic
+    on_press:
+      - script.execute: {id: cec_tx, dest: 0x0, op: 0x8F, arg: -1}
+
+  # CEC UI command codes (HDMI 1.4b table 27), sent as press+release pairs.
+  - platform: template
+    name: "CEC Up"
+    icon: "mdi:arrow-up-bold"
+    on_press:
+      - script.execute: {id: cec_send_target, key: 0x01}
+  - platform: template
+    name: "CEC Down"
+    icon: "mdi:arrow-down-bold"
+    on_press:
+      - script.execute: {id: cec_send_target, key: 0x02}
+  - platform: template
+    name: "CEC Left"
+    icon: "mdi:arrow-left-bold"
+    on_press:
+      - script.execute: {id: cec_send_target, key: 0x03}
+  - platform: template
+    name: "CEC Right"
+    icon: "mdi:arrow-right-bold"
+    on_press:
+      - script.execute: {id: cec_send_target, key: 0x04}
+  - platform: template
+    name: "CEC Select"
+    icon: "mdi:checkbox-marked-circle-outline"
+    on_press:
+      - script.execute: {id: cec_send_target, key: 0x00}
+  - platform: template
+    name: "CEC Back"
+    icon: "mdi:keyboard-return"
+    on_press:
+      - script.execute: {id: cec_send_target, key: 0x0D}
+  - platform: template
+    name: "CEC Home"
+    icon: "mdi:home"
+    on_press:
+      - script.execute: {id: cec_send_target, key: 0x09}
+  # Pause (0x46), not 0x61 (Pause-Play Function): the 0x6x "Function" codes carry
+  # an extra play-mode operand and are widely unimplemented, so a bare 0x61 is
+  # often ignored; 0x46 is a simple, well-supported code like the other transport
+  # keys. Many players also treat 0x46 as a play/pause toggle, so paired with the
+  # separate Play (0x44) below it works on strict and toggling devices alike.
+  - platform: template
+    name: "CEC Pause"
+    icon: "mdi:pause"
+    on_press:
+      - script.execute: {id: cec_send_target, key: 0x46}
+  - platform: template
+    name: "CEC Play"
+    icon: "mdi:play"
+    on_press:
+      - script.execute: {id: cec_send_target, key: 0x44}
+  - platform: template
+    name: "CEC Stop"
+    icon: "mdi:stop"
+    on_press:
+      - script.execute: {id: cec_send_target, key: 0x45}
+
+  # Media transport (Play/Pause and Stop are above). Like every remote key, these
+  # go to whatever the "CEC Target" selector points at (default: on-screen source).
+  - platform: template
+    name: "CEC Rewind"
+    icon: "mdi:rewind"
+    on_press:
+      - script.execute: {id: cec_send_target, key: 0x48}
+  - platform: template
+    name: "CEC Fast Forward"
+    icon: "mdi:fast-forward"
+    on_press:
+      - script.execute: {id: cec_send_target, key: 0x49}
+  - platform: template
+    name: "CEC Previous"
+    icon: "mdi:skip-previous"
+    on_press:
+      - script.execute: {id: cec_send_target, key: 0x4C}
+  - platform: template
+    name: "CEC Next"
+    icon: "mdi:skip-next"
+    on_press:
+      - script.execute: {id: cec_send_target, key: 0x4B}
+
+  # Volume/mute follow the same "CEC Target" selector as the other keys. Set the
+  # target to "Sink (auto)" for the old behavior (TV when a CEC TV is present,
+  # else the audio system), or aim them at a source to control that source's own
+  # volume instead.
+  - platform: template
+    name: "CEC Volume Up"
+    icon: "mdi:volume-plus"
+    on_press:
+      - script.execute: {id: cec_send_target, key: 0x41}
+  - platform: template
+    name: "CEC Volume Down"
+    icon: "mdi:volume-minus"
+    on_press:
+      - script.execute: {id: cec_send_target, key: 0x42}
+  - platform: template
+    name: "CEC Mute"
+    icon: "mdi:volume-mute"
+    on_press:
+      - script.execute: {id: cec_send_target, key: 0x43}
+
+text_sensor:
+  - platform: template
+    name: "CEC Log"
+    id: cec_log
+    icon: "mdi:message-text-outline"
+    entity_category: diagnostic
+    # On a busy CEC bus this publishes on every frame, which would write to the
+    # HA recorder database continuously. Off unless a user turns it on to debug.
+    disabled_by_default: true
+  - platform: template
+    name: "CEC Physical Address"
+    id: cec_pa
+    icon: "mdi:identifier"
+    entity_category: diagnostic
+  - platform: template
+    name: "CEC Sources"
+    id: cec_devices
+    icon: "mdi:video-input-hdmi"
+    entity_category: diagnostic
+  # Feedback from the Learn buttons: which LA got bound, or why it didn't.
+  - platform: template
+    name: "CEC Learn Status"
+    id: cec_learn_status
+    icon: "mdi:school-outline"
+    entity_category: diagnostic
+  # "TV" = we answer as the display. "Source" = a real CEC TV owns address 0 and
+  # we took a playback address, so we can still send control (volume, keys) to it
+  # and to the sources. "Passive" = a CEC TV is present but no playback address
+  # was free, so we only listen.
+  - platform: template
+    name: "CEC Role"
+    id: cec_role_text
+    icon: "mdi:account-switch-outline"
+    entity_category: diagnostic
